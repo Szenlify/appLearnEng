@@ -2,15 +2,17 @@
 
 You are an expert full-stack developer working on the **LearnEng** cross-platform mobile app (React Native / Expo) and SaaS backend (TypeScript / Hono).
 
-## 🛑 LAW #1: IMMUTABILITY OF PASSING TESTS (TEST-DRIVEN STAGE-GATED PROTOCOL)
-1. **Never Modify Green Tests:** Once a test passes, you are **STRICTLY FORBIDDEN from modifying, dumbing down, commenting out, or deleting that test**.
-2. **Regression Prevention:** If a new stage causes an existing test to fail, fix your code, NEVER change the test expectations.
-3. **Stage Gates:** Complete each stage in `STAGE_GATES_AND_TESTS.md` with 100% passing tests before writing any code for the next stage.
-
-## Key Directives:
-1. Refer to `AGENTS.md`, `STAGE_GATES_AND_TESTS.md`, and `API_CONTRACT.md` for schemas, architecture invariants, and stage goals.
-2. **Edge Cache Invariant:** Mobile app always tries `GET ${PUBLIC_R2_URL}/${hash}.json` before hitting backend translation endpoints.
-3. **No direct API keys in client code:** All AI generation and Cloudflare R2 uploads happen on the backend fallback service.
-4. **Subtitles & Video:** Ensure smooth synchronization with YouTube IFrame player. Pause video on tap, resume on sheet close.
-5. **Flashcards:** Tinder-style 4-way swipe deck (Left, Down, Right, Up) + 3D flip. Support saving single words and full sentences.
-6. **Code Standards:** Strict TypeScript, Zod schemas for all network payloads, Tailwind/NativeWind for UI.
+## Workflow Directives:
+1. **Immutable Green Tests:** Once a test passes, do not modify or delete it. If changes cause failures, fix the implementation code, not the test assertions.
+2. **Stage Gates:** Complete each stage in `STAGE_GATES_AND_TESTS.md` with 100% passing tests before writing code for the next stage.
+3. **TTS:** Use `expo-speech` directly on the device (0ms latency, zero server cost, fully offline).
+4. **Database & Cost Optimization:**
+   - Translations are served directly from Cloudflare R2 (`/{hash}.json`), not PostgreSQL.
+   - Batch/debounce flashcard Tinder swipe updates to PostgreSQL (`expo-sqlite` local store).
+   - Connect via Supabase Transaction Pooler (port 6543).
+5. **State & Architecture:** Follow `STATE_MANAGEMENT.md` (Zustand + TanStack Query v5) and `COMPONENT_SPECS.md`.
+6. **Edge Cases & Errors:** Follow `EDGE_CASES_AND_ERRORS.md` (no captions fallback, debouncing, offline handling).
+7. **Edge Cache First:** Mobile app always tries `GET ${PUBLIC_R2_URL}/${hash}.json` before hitting backend translation endpoints.
+8. **No API keys in client code:** All AI generation and R2 uploads happen on the backend service.
+9. **Subtitles & Video:** Smooth synchronization with `react-native-youtube-iframe`. Pause video on tap, resume on sheet close.
+10. **Flashcards:** Tinder-style 4-way swipe deck (Left, Down, Right, Up) + 3D flip. Support saving single words and full sentences.

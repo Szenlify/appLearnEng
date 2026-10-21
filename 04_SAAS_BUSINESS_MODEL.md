@@ -1,52 +1,54 @@
-# 04. Model Biznesowy SaaS, Subskrypcje i Płatności Wielowalutowe (Stripe)
+# 04. Model Biznesowy SaaS, Subskrypcje i Płatności Globalne (Stripe)
 
-## 1. Wybór Rynków o Najwyższej Skłonności do Płacenia (High ARPU)
+## 1. Domyślna Waluta Globalna: Dolar Amerykański (USD)
 
-Aplikacja uczy języka angielskiego, ale interfejs i tłumaczenia dostosowane są do języka ojczystego użytkownika. Selekcja języków opiera się na **krajach o najwyższym współczynniku konwersji i skłonności do płacenia za edukację**:
-
-1. 🇵🇱 **Polska (PLN):** Ogromne zapotrzebowanie na angielski w IT i korporacjach. Standard płatności: **BLIK** oraz karty.
-2. 🇩🇪 **Niemcy, Austria, Szwajcaria (EUR / CHF):** Region DACH — najwyższe ARPU w Europie, kultura płacenia za dobre narzędzia edukacyjne. Płatności: **SEPA**, Giropay, Sofort.
-3. 🇫🇷 **Francja, Belgia (EUR):** Silna potrzeba podnoszenia poziomu angielskiego, duży rynek konsumencki.
-4. 🇪🇸 **Hiszpania & Ameryka Łacińska (EUR / USD):** Bardzo duża baza użytkowników, naturalna potrzeba immersji.
-5. 🇮🇹 **Włochy (EUR):** Bardzo niski średni poziom biegłości angielskiego w Europie = wysoka motywacja do nauki.
-6. 🇯🇵 **Japonia (JPY):** Gigantyczny rynek edukacyjny, kultura ciągłego samodoskonalenia, bardzo wysokie wydatki na subskrypcje językowe.
-7. 🇰🇷 **Korea Południowa (KRW / USD):** Rekordowe globalnie wydatki per capita na naukę angielskiego.
+LearnEng jest projektowany od pierwszego dnia jako **globalna aplikacja mobilna**. 
+- **Domyślną walutą bazową (Default Base Currency) całego systemu jest USD ($)**.
+- Wszystkie konta, raporty Stripe oraz standardowe cenniki operują na dolarach amerykańskich.
+- Dla użytkowników z dedykowanych rynków lokalnych (np. Polska, kraje strefy Euro) Stripe dynamicznie prezentuje lokalną walutę i lokalne metody płatności.
 
 ---
 
-## 2. Plany Subskrypcyjne i Lokalizacja Cen w Stripe
+## 2. Plany Subskrypcyjne (Miesięczne z 3 Dniowym Trialem)
 
-Subskrypcje są rozliczane **w cyklu miesięcznym z 3-dniowym bezpłatnym okresem próbnym (3-Day Free Trial)**. Ceny i waluty są automatycznie dopasowywane do kraju użytkownika:
+Każdy plan rozliczany jest w cyklu miesięcznym i posiada **3-dniowy darmowy okres próbny (3-Day Free Trial)**:
 
-| Plan | 🇵🇱 Polska (PLN) | 🇪🇺 Strefa Euro (EUR) | 🇺🇸 Global / USA (USD) | 🇯🇵 Japonia (JPY) |
+| Plan | 🇺🇸 Domyślny Globalny (USD) | 🇪🇺 Strefa Euro (EUR) | 🇵🇱 Polska (PLN) | 🇯🇵 Japonia (JPY) |
 | :--- | :--- | :--- | :--- | :--- |
-| 🥉 **Starter** | **19,99 PLN** / msc | **4,99 €** / msc | **$4.99** / mo | **¥750** / mo |
-| 🥈 **Pro** | **39,99 PLN** / msc | **8,99 €** / msc | **$8.99** / mo | **¥1 400** / mo |
-| 🥇 **Master** | **69,99 PLN** / msc | **15,99 €** / msc | **$16.99** / mo | **¥2 500** / mo |
+| 🥉 **Starter** | **$4.99** / mo | **4,99 €** / msc | **19,99 PLN** / msc | **¥750** / mo |
+| 🥈 **Pro** | **$8.99** / mo | **8,99 €** / msc | **39,99 PLN** / msc | **¥1 400** / mo |
+| 🥇 **Master** | **$16.99** / mo | **15,99 €** / msc | **69,99 PLN** / msc | **¥2 500** / mo |
 | **Okres próbny** | **3 dni za darmo** | **3 dni za darmo** | **3 dni za darmo** | **3 dni za darmo** |
 
+*Wszyscy użytkownicy z krajów innych niż dedykowane rynki lokalne płacą w domyślnej walucie **USD**.*
+
 ---
 
-## 3. Lokalne Metody Płatności w Stripe (W tym BLIK)
+## 3. Metody Płatności w Stripe (W tym BLIK dla Polski)
 
-Dla maksymalizacji konwersji, Stripe PaymentSheet / Checkout automatycznie udostępnia lokalne metody płatności:
+Stripe PaymentSheet / Checkout automatycznie dobiera metody płatności na podstawie kraju i waluty:
 
-### 3.1 Polska (PLN)
-* **BLIK:** Obowiązkowa metoda w Polsce odpowiadająca za ponad 70% transakcji online. Stripe wspiera BLIK natywnie (kod 6-cyfrowy wpisywany bezpośrednio w aplikacji lub przekierowanie do banku).
-* **Przelewy24 (P24):** Szybkie przelewy bankowe ze wszystkich polskich banków.
-* **Apple Pay / Google Pay / Karty płatnicze.**
+### 3.1 Global / USA (Domyślne — USD):
+- Karty kredytowe i debetowe (Visa, Mastercard, Amex).
+- Apple Pay oraz Google Pay (natywne płatności jednym tapnięciem).
+- Stripe Link (błyskawiczny 1-click checkout).
 
-### 3.2 Kraje Europejskie (EUR)
-* **SEPA Direct Debit:** Bezpośrednie polecenie zapłaty (bardzo popularne w Niemczech).
-* **iDEAL (Holandia), Bancontact (Belgia), Sofort / Giropay (Niemcy).**
-* **Apple Pay / Google Pay / Karty.**
+### 3.2 Polska (Lokalizacja PLN):
+- **BLIK:** Domyślna i preferowana metoda płatności dla polskich użytkowników (wpisanie 6-cyfrowego kodu w aplikacji lub przekierowanie do banku).
+- **Przelewy24 (P24)** oraz karty i Apple/Google Pay.
 
-### 3.3 Konfiguracja w Stripe API:
+### 3.3 Kraje Strefy Euro (Lokalizacja EUR):
+- **SEPA Direct Debit** (popularne w Niemczech i Austrii).
+- **iDEAL** (Holandia), **Bancontact** (Belgia), **Sofort / Giropay** (Niemcy).
+- Karty oraz Apple/Google Pay.
+
+### 3.4 Konfiguracja Sesji Checkout w Stripe:
 ```typescript
 const session = await stripe.checkout.sessions.create({
   customer: stripeCustomerId,
   mode: 'subscription',
-  payment_method_types: ['card', 'blik', 'p24', 'sepa_debit'], // dynamiczne metody
+  currency: userCurrency || 'usd', // domyślnie zawsze USD
+  payment_method_types: ['card', 'link', 'blik', 'sepa_debit'],
   subscription_data: {
     trial_period_days: 3,
   },
@@ -61,7 +63,7 @@ const session = await stripe.checkout.sessions.create({
 ## 4. Wybór Języka Ojczystego w Aplikacji (User Experience)
 
 1. **Na starcie (Onboarding Screen):**
-   - Pierwszy ekran po instalacji pyta użytkownika: *"Jaki jest Twój język ojczysty?"* (flagi: 🇵🇱 Polski, 🇩🇪 Niemiecki, 🇪🇸 Hiszpański, 🇫🇷 Francuski, 🇮🇹 Włoski, 🇯🇵 Japoński).
-   - Wybór zapisuje się lokalnie oraz w profilu użytkownika (`profiles.native_language`).
-2. **W Profilu / Ustawieniach:**
-   - W zakładce *"Ustawienia / Profil"* użytkownik w każdej chwili może zmienić język tłumaczeń oraz walutę.
+   - Pierwszy ekran po instalacji pyta użytkownika: *"What is your native language?"* (języki: 🇪🇸 Spanish, 🇩🇪 German, 🇫🇷 French, 🇵🇱 Polish, 🇮🇹 Italian, 🇯🇵 Japanese, etc.).
+   - Wybór zapisuje się w profilu (`profiles.native_language`).
+2. **W Ustawieniach Profilu:**
+   - Użytkownik w każdej chwili może zmienić język tłumaczeń oraz preferowaną walutę.

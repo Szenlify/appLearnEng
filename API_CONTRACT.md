@@ -112,10 +112,10 @@ export interface CreateFlashcardRequestBody {
 
 ## 5. Stripe Billing Contract (Multi-Currency & Localized Payments)
 
-### 5.1 Pricing Matrix
+### 5.1 Pricing Matrix (Default: USD)
+- **USD (Default Global):** Starter $4.99/mo, Pro $8.99/mo, Master $16.99/mo. Methods: `['card', 'link', 'apple_pay', 'google_pay']`.
+- **EUR (Strefa Euro):** Starter 4.99 €, Pro 8.99 €, Master 15.99 €. Methods: `['card', 'sepa_debit', 'ideal', 'bancontact']`.
 - **PLN (Polska):** Starter 19.99 PLN, Pro 39.99 PLN, Master 69.99 PLN. Methods: `['card', 'blik', 'p24']`.
-- **EUR (Niemcy, Francja, itd.):** Starter 4.99 €, Pro 8.99 €, Master 15.99 €. Methods: `['card', 'sepa_debit', 'ideal', 'bancontact']`.
-- **USD (Global):** Starter $4.99, Pro $8.99, Master $16.99. Methods: `['card', 'link']`.
 - **JPY (Japonia):** Starter ¥750, Pro ¥1,400, Master ¥2,500. Methods: `['card', 'konbini']`.
 
 All tiers have `trial_period_days: 3`.

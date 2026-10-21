@@ -13,8 +13,8 @@ CREATE TABLE public.profiles (
     email VARCHAR(255) NOT NULL,
     full_name VARCHAR(100),
     avatar_url TEXT,
-    native_language VARCHAR(10) NOT NULL DEFAULT 'pl', -- 'pl', 'de', 'es', 'fr', 'it', 'ja'
-    preferred_currency VARCHAR(10) NOT NULL DEFAULT 'PLN', -- 'PLN', 'EUR', 'USD', 'JPY'
+    native_language VARCHAR(10) NOT NULL DEFAULT 'es', -- 'es', 'de', 'fr', 'pl', 'it', 'ja'
+    preferred_currency VARCHAR(10) NOT NULL DEFAULT 'USD', -- 'USD', 'EUR', 'PLN', 'JPY'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     daily_ai_requests_count INT DEFAULT 0,
@@ -30,7 +30,7 @@ CREATE TABLE public.user_subscriptions (
     stripe_customer_id VARCHAR(255) UNIQUE,
     stripe_subscription_id VARCHAR(255) UNIQUE,
     plan_tier VARCHAR(30) NOT NULL DEFAULT 'free', -- 'free', 'starter', 'pro', 'master'
-    currency VARCHAR(10) NOT NULL DEFAULT 'PLN',
+    currency VARCHAR(10) NOT NULL DEFAULT 'USD',
     status VARCHAR(50) NOT NULL DEFAULT 'inactive', -- 'trialing', 'active', 'past_due', 'canceled'
     trial_start TIMESTAMP WITH TIME ZONE,
     trial_end TIMESTAMP WITH TIME ZONE,
@@ -126,12 +126,12 @@ BEGIN
         NEW.email,
         NEW.raw_user_meta_data->>'full_name',
         NEW.raw_user_meta_data->>'avatar_url',
-        COALESCE(NEW.raw_user_meta_data->>'native_language', 'pl'),
-        COALESCE(NEW.raw_user_meta_data->>'preferred_currency', 'PLN')
+        COALESCE(NEW.raw_user_meta_data->>'native_language', 'es'),
+        COALESCE(NEW.raw_user_meta_data->>'preferred_currency', 'USD')
     );
     
     INSERT INTO public.user_subscriptions (user_id, plan_tier, status, currency)
-    VALUES (NEW.id, 'free', 'inactive', COALESCE(NEW.raw_user_meta_data->>'preferred_currency', 'PLN'));
+    VALUES (NEW.id, 'free', 'inactive', COALESCE(NEW.raw_user_meta_data->>'preferred_currency', 'USD'));
     
     RETURN NEW;
 END;

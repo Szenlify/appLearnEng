@@ -1,47 +1,47 @@
 # 05. Plan Działań, Zakres MVP i Wdrożenie
 
-## 1. Zakres MVP (Minimum Viable Product - Faza 1)
+## 1. Zakres MVP (Minimum Viable Product)
 
-Celem MVP jest jak najszybsze zweryfikowanie hipotezy produktowej na obu platformach (**iOS i Android**) przy zachowaniu minimalnych kosztów infrastruktury:
+Aplikacja powstaje w jednym, zablokowanym stacku technologicznym: **React Native (Expo SDK 51+) + Hono na Bun + Supabase PostgreSQL + Cloudflare R2 + Stripe**.
 
 ### Funkcjonalności MVP:
-1. **Ekran Odtwarzacza (Cross-Platform Player View):**
-   - Osadzony odtwarzacz YouTube (YouTube IFrame API).
-   - Interaktywny pasek napisów umieszczony bezpośrednio pod filmem.
-2. **Optymalizacja Kosztów AI (Cloudflare R2 Public Link):**
+1. **Ekran Odtwarzacza Wideo:**
+   - Odtwarzacz `react-native-youtube-iframe`.
+   - Pasek z napisami pod wideo z automatycznym wyśrodkowaniem tekstu.
+2. **Krawędziowy Cache Tłumaczeń (Cloudflare R2 First):**
    - Kliknięcie słowa/zdania pauzuje wideo.
-   - Aplikacja oblicza hash i wykonuje bezpośredni `GET` do publicznego linku Cloudflare R2 (`/{hash}.json`).
-   - W przypadku braku w cache (404) -> zapytanie do backendu, wywołanie **Gemini 2.5 Lite**, zapis do roota Cloudflare R2 i zwrot do aplikacji.
-3. **Zapisywanie Słów oraz Całych Zdań do Fiszek:**
-   - Przycisk *"Zapisz słowo"* oraz *"Zapisz całe zdanie"* na karcie tłumaczenia.
-   - Dedykowany ekran *"Fiszki / Moje Powtórki"* z podziałem na słówka i pełne struktury zdaniowe z kontekstem wideo.
-4. **Monetyzacja przez Stripe:**
-   - 3 plany subskrypcji miesięcznej (**Starter**, **Pro**, **Master**).
-   - Automatyczny **3-dniowy darmowy okres próbny (Trial)** przy starcie subskrypcji.
+   - Aplikacja oblicza hash i wykonuje `GET` do Cloudflare R2 (`/{hash}.json`).
+   - Przy 404: backend odpytuje **Gemini 2.5 Lite**, zapisuje wynik do roota R2 i zwraca do aplikacji.
+3. **Zapisywanie Słów i Całych Zdań do Fiszek:**
+   - Dwa przyciski w modalu: "Zapisz słówko" oraz "Zapisz całe zdanie".
+   - Baza PostgreSQL przechowuje fiszki powiązane z użytkownikiem.
+4. **Talia Fiszek w Stylu Tindera:**
+   - Ekran z gestami w 4 kierunkach: Lewo (Powtórz), Dół (Trudne), Prawo (Dobrze), Góra (Łatwe).
+   - Obrót 3D na tapnięcie (angielski przód, polski tył z wymową `expo-speech`).
+5. **Płatności Stripe:**
+   - 3 plany miesięczne: Starter, Pro, Master (każdy z 3-dniowym darmowym trialem).
+   - Obsługa BLIK i kart w Polsce, EUR w Europie.
 
 ---
 
-## 2. Etapy Wdrożenia (Roadmap Sprintów)
+## 2. Harmonogram Wdrożenia
 
-### Sprint 1: Setup Cross-Platform, Odtwarzacz i Napisy (Tydzień 1-2)
-- [ ] Inicjalizacja projektu cross-platform (Flutter / React Native Expo) dla iOS i Androida.
-- [ ] Zbudowanie komponentu odtwarzacza YouTube z dwukierunkową komunikacją (zdarzenia `timeupdate`, pauzowanie, wznawianie).
-- [ ] Przygotowanie backendu parsującego transkrypcje YouTube do ustrukturyzowanego formatu JSON.
-- [ ] Renderowanie paska napisów z podziałem na klikalne tokeny (słowa i zaznaczanie zdań).
+### Sprint 1: Monorepo, Odtwarzacz i Napisy (Tydzień 1-2)
+- Inicjalizacja monorepo Turborepo z Bun: `apps/mobile` (Expo), `apps/backend` (Hono), `packages/shared`.
+- Zbudowanie odtwarzacza wideo z synchronizacją napisów.
+- Scraper napisów YouTube w backendzie.
 
 ### Sprint 2: Cloudflare R2 Cache i Gemini 2.5 Lite (Tydzień 3)
-- [ ] Utworzenie bucketu w **Cloudflare R2** i podpięcie własnej domeny publicznej (np. `cache.applearneng.com`).
-- [ ] Implementacja algorytmu haszowania `sha256(word + "_" + sentence)` w aplikacji mobilnej.
-- [ ] Logika zapytania: `GET https://cache.applearneng.com/{hash}.json` -> przy 404 uderzenie do `/api/v1/translate`.
-- [ ] Integracja backendu z Google Gemini 2.5 Lite API i automatyczny zapis odpowiedzi JSON do folderu głównego w R2.
+- Utworzenie bucketu Cloudflare R2 i podpięcie domeny publicznej.
+- Implementacja logiki R2 First w aplikacji mobilnej.
+- Endpoint `/api/v1/translate` z integracją Gemini 2.5 Lite i uploadem do R2.
 
-### Sprint 3: Moduł Fiszek w Aplikacji (Tydzień 4)
-- [ ] Baza danych PostgreSQL (Supabase) – tabele użytkowników i fiszek (`user_flashcards`).
-- [ ] Widok zapisu: możliwość dodania słówka lub całego zdania do fiszek z poziomu Bottom Sheet.
-- [ ] Ekran nauki fiszek w aplikacji mobilnej z trybem powtórek (karty odwracane / swipe).
+### Sprint 3: Fiszki Tinder-Deck i Supabase (Tydzień 4)
+- PostgreSQL na Supabase: tabele `profiles`, `user_flashcards`, `user_subscriptions`.
+- Logowanie przez Supabase Auth (Apple Sign In, Google, Email).
+- Ekran powtórek fiszek a'la Tinder z bibliotekami `react-native-reanimated` i `react-native-gesture-handler`.
 
-### Sprint 4: Płatności Stripe i Wdrożenie (Tydzień 5-6)
-- [ ] Konfiguracja konta Stripe i produktów (3 plany miesięczne z parametrem `trial_period_days: 3`).
-- [ ] Wdrożenie checkoutu subskrypcji w aplikacji mobilnej (Stripe SDK / portal klienta).
-- [ ] Webhooki Stripe w backendzie aktualizujące status uprawnień użytkownika w bazie.
-- [ ] Przygotowanie buildów produkcyjnych na iOS (TestFlight / App Store) oraz Android (Google Play Console).
+### Sprint 4: Płatności Stripe i Publikacja (Tydzień 5-6)
+- Stripe Checkout dla 3 planów miesięcznych z 3 dniami trialu.
+- Ekran Paywalla i obsługa webhooków.
+- Przygotowanie buildów produkcyjnych przez EAS Build (Expo Application Services) na iOS i Android.
