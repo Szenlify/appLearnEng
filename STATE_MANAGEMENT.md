@@ -62,6 +62,7 @@ interface PlayerState {
   currentTime: number;
   duration: number;
   playbackRate: number;        // 0.25 to 2.00 step 0.05 (default 1.0)
+  autoResumeOnSheetClose: boolean; // default true, user configurable in profile
   
   // Subtitle synchronization
   cues: SubtitleCue[];
@@ -78,6 +79,7 @@ interface PlayerState {
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
   setPlaybackRate: (rate: number) => void;
+  setAutoResumeOnSheetClose: (autoResume: boolean) => void;
   setCaptions: (cues: SubtitleCue[]) => void;
   openTranslation: (word: string, sentence: string) => void;
   closeTranslation: () => void;
@@ -89,6 +91,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentTime: 0,
   duration: 0,
   playbackRate: 1.0,
+  autoResumeOnSheetClose: true,
   cues: [],
   activeCueIndex: -1,
   selectedWord: null,
@@ -98,6 +101,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setVideoId: (id) => set({ videoId: id, currentTime: 0, activeCueIndex: -1 }),
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setPlaybackRate: (rate) => set({ playbackRate: clampPlaybackRate(rate) }),
+  setAutoResumeOnSheetClose: (autoResume) => set({ autoResumeOnSheetClose: autoResume }),
   
   setCurrentTime: (time) => {
     const { cues, activeCueIndex } = get();
@@ -126,12 +130,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
 
   closeTranslation: () => {
-    // Optionally resume playback on close
+    const { autoResumeOnSheetClose } = get();
     set({
       isSheetOpen: false,
       selectedWord: null,
       selectedSentence: null,
-      isPlaying: true,
+      isPlaying: autoResumeOnSheetClose,
     });
   },
 }));

@@ -1,168 +1,174 @@
-# 04. Model Biznesowy SaaS, Subskrypcje i Płatności Globalne (Stripe)
+# 04. SaaS Business Model, In-App Purchases (RevenueCat) & Subscription Tiers
 
-## 1. Domyślna Waluta Globalna: Dolar Amerykański (USD)
+## 1. Native Mobile Monetization: RevenueCat (In-App Purchases)
 
-LearnEng jest projektowany od pierwszego dnia jako **globalna aplikacja mobilna**. 
-- **Domyślną walutą bazową (Default Base Currency) całego systemu jest USD ($)**.
-- Wszystkie konta, raporty Stripe oraz standardowe cenniki operują na dolarach amerykańskich.
-- Dla użytkowników z dedykowanych rynków lokalnych (np. Polska, kraje strefy Euro) Stripe dynamicznie prezentuje lokalną walutę i lokalne metody płatności.
-
----
-
-## 2. Plany Subskrypcyjne (Miesięczne z 3 Dniowym Trialem)
-
-Każdy plan rozliczany jest w cyklu miesięcznym i posiada **3-dniowy darmowy okres próbny (3-Day Free Trial)**:
-
-| Plan | 🇺🇸 Domyślny Globalny (USD) | 🇪🇺 Strefa Euro (EUR) | 🇵🇱 Polska (PLN) | 🇯🇵 Japonia (JPY) |
-| :--- | :--- | :--- | :--- | :--- |
-| 🥉 **Starter** | **$4.99** / mo | **4,99 €** / msc | **19,99 PLN** / msc | **¥750** / mo |
-| 🥈 **Pro** | **$8.99** / mo | **8,99 €** / msc | **39,99 PLN** / msc | **¥1 400** / mo |
-| 🥇 **Master** | **$16.99** / mo | **15,99 €** / msc | **69,99 PLN** / msc | **¥2 500** / mo |
-| **Okres próbny** | **3 dni za darmo** | **3 dni za darmo** | **3 dni za darmo** | **3 dni za darmo** |
-
-*Wszyscy użytkownicy z krajów innych niż dedykowane rynki lokalne płacą w domyślnej walucie **USD**.*
+LearnEng uses **RevenueCat (`react-native-purchases`)** for cross-platform In-App Purchases:
+- **100% Apple & Google Play Guideline Compliant:** Uses native Apple StoreKit 2 and Google Play Billing. No external Stripe checkouts that could lead to App Store rejection (App Store Guideline 3.1.1).
+- **Zero Cost for Startups:** RevenueCat is free up to $2,500/month in tracked revenue.
+- **Unified Cross-Platform Entitlements:** A user subscribing on iOS can restore purchases on Android and vice-versa by binding the subscription to their Supabase user UUID (`appUserID: user.id`).
+- **3-Day Free Trial:** Offered on all subscription tiers directly within the native App Store / Google Play purchase sheet.
 
 ---
 
-## 3. Metody Płatności w Stripe (W tym BLIK dla Polski)
+## 2. Subscription Tiers (Harmonized & Non-Contradictory Matrix)
 
-Stripe PaymentSheet / Checkout automatycznie dobiera metody płatności na podstawie kraju i waluty:
+Every plan is billed monthly and includes a **3-Day Free Trial**:
 
-### 3.1 Global / USA (Domyślne — USD):
-- Karty kredytowe i debetowe (Visa, Mastercard, Amex).
-- Apple Pay oraz Google Pay (natywne płatności jednym tapnięciem).
-- Stripe Link (błyskawiczny 1-click checkout).
+| Tier | Price (Default USD) | AI Translation Quota | "Explain in Context" (Idioms/Slang) | Flashcards & Offline | Anki / CSV Export |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| 🆓 **Free** | **$0.00** | **30 new AI lookups / 24h**<br>*(R2 cache hits always unlimited & free)* | Basic definition & translation only | Up to 50 cards, local SQLite only | ❌ |
+| 🥈 **Pro**<br>*(Bestseller)* | **$8.99 / mo**<br>*(3-day free trial)* | **Unlimited new AI lookups**<br>*(no daily or monthly limit)* | Full cultural, idiom, phrasal verb & emotional breakdown | Unlimited cards, full offline SRS, audio speed stepping (0.25x–2.00x) | ❌ |
+| 🥇 **Master** | **$16.99 / mo**<br>*(3-day free trial)* | **Unlimited new AI lookups** | Full breakdown + alternative examples | Unlimited cards, full offline SRS, audio speed stepping | ✅ Full export to Anki (.apkg/CSV) |
 
-### 3.2 Polska (Lokalizacja PLN):
-- **BLIK:** Domyślna i preferowana metoda płatności dla polskich użytkowników (wpisanie 6-cyfrowego kodu w aplikacji lub przekierowanie do banku).
-- **Przelewy24 (P24)** oraz karty i Apple/Google Pay.
+> [!NOTE]
+> **Static Public R2 Cache Hit Rule:** Whenever a tapped word or sentence has already been translated by any user, its JSON is served from Cloudflare R2 CDN (`/{hash}.json`). **R2 cache hits DO NOT consume any user quotas on any plan.** Only when a translation misses cache and invokes Google Gemini 2.5 Flash-Lite does the quota apply.
 
-### 3.3 Kraje Strefy Euro (Lokalizacja EUR):
-- **SEPA Direct Debit** (popularne w Niemczech i Austrii).
-- **iDEAL** (Holandia), **Bancontact** (Belgia), **Sofort / Giropay** (Niemcy).
-- Karty oraz Apple/Google Pay.
+---
 
-### 3.4 Konfiguracja Sesji Checkout i Webhooków Stripe w Hono (`apps/backend/src/routes/stripe.routes.ts`):
+## 3. RevenueCat Entitlements & Product IDs
 
-> [!IMPORTANT]
-> W środowisku **Bun** weryfikacja podpisu webhooka Stripe **musi** używać asynchronicznej metody `await stripe.webhooks.constructEventAsync(rawBody, sig, secret)` (synchroniczne `constructEvent` powoduje błąd SubtleCrypto w Bunie).
+In the RevenueCat dashboard, configure an **Offering** named `default` with packages:
+
+- **Entitlement ID:** `pro_access` (unlocked by Pro and Master)
+- **Entitlement ID:** `master_access` (unlocked only by Master)
+
+### Product Identifiers:
+- iOS:
+  - `learneng_pro_monthly` ($8.99, 3-day trial)
+  - `learneng_master_monthly` ($16.99, 3-day trial)
+- Android:
+  - `learneng_pro_monthly:monthly-pro-trial`
+  - `learneng_master_monthly:monthly-master-trial`
+
+---
+
+## 4. Mobile Client Implementation (`apps/mobile/lib/purchases.ts`)
 
 ```typescript
-import Stripe from 'stripe';
+import { Platform } from 'react-native';
+import Purchases, { PurchasesPackage, CustomerInfo } from 'react-native-purchases';
+
+const REVENUECAT_API_KEY_IOS = process.env.EXPO_PUBLIC_RC_IOS_KEY || '';
+const REVENUECAT_API_KEY_ANDROID = process.env.EXPO_PUBLIC_RC_ANDROID_KEY || '';
+
+export async function initPurchases(userId?: string): Promise<void> {
+  const apiKey = Platform.OS === 'ios' ? REVENUECAT_API_KEY_IOS : REVENUECAT_API_KEY_ANDROID;
+  if (!apiKey) {
+    console.warn('RevenueCat API key missing');
+    return;
+  }
+
+  Purchases.configure({
+    apiKey,
+    appUserID: userId || undefined,
+  });
+}
+
+export async function fetchOfferings(): Promise<PurchasesPackage[]> {
+  try {
+    const offerings = await Purchases.getOfferings();
+    if (offerings.current && offerings.current.availablePackages.length > 0) {
+      return offerings.current.availablePackages;
+    }
+    return [];
+  } catch (err) {
+    console.error('Error fetching RevenueCat offerings:', err);
+    return [];
+  }
+}
+
+export async function purchasePackage(pkg: PurchasesPackage): Promise<{ customerInfo: CustomerInfo; success: boolean }> {
+  try {
+    const { customerInfo } = await Purchases.purchasePackage(pkg);
+    const hasPro = Boolean(customerInfo.entitlements.active['pro_access']);
+    return { customerInfo, success: hasPro };
+  } catch (err: any) {
+    if (!err.userCancelled) {
+      console.error('Purchase error:', err);
+    }
+    return { customerInfo: {} as CustomerInfo, success: false };
+  }
+}
+
+export async function restoreUserPurchases(): Promise<boolean> {
+  try {
+    const customerInfo = await Purchases.restorePurchases();
+    return Boolean(customerInfo.entitlements.active['pro_access']);
+  } catch (err) {
+    console.error('Restore error:', err);
+    return false;
+  }
+}
+```
+
+---
+
+## 5. Backend RevenueCat Webhook Handler (`apps/backend/src/routes/revenuecat.routes.ts`)
+
+RevenueCat sends webhooks for subscription events (`INITIAL_PURCHASE`, `RENEWAL`, `CANCELLATION`, `EXPIRATION`). The backend listens to these events and synchronizes `public.user_subscriptions` in Supabase:
+
+```typescript
 import { Hono } from 'hono';
 import { createClient } from '@supabase/supabase-js';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
-});
+export const revenueCatRoutes = new Hono();
 
 const supabaseAdmin = createClient(
   process.env.SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export type PlanTier = 'starter' | 'pro' | 'master';
-export type SupportedCurrency = 'USD' | 'EUR' | 'PLN' | 'JPY';
+revenueCatRoutes.post('/api/v1/revenuecat/webhook', async (c) => {
+  const authHeader = c.req.header('Authorization');
+  const expectedAuth = process.env.REVENUECAT_WEBHOOK_AUTH_HEADER;
 
-export function getPaymentMethodsForCurrency(currency: SupportedCurrency): Stripe.Checkout.SessionCreateParams.PaymentMethodType[] {
-  switch (currency.toUpperCase()) {
-    case 'PLN':
-      return ['card', 'blik', 'p24'];
-    case 'EUR':
-      return ['card', 'sepa_debit', 'ideal', 'bancontact'];
-    case 'JPY':
-      return ['card', 'konbini'];
-    default:
-      return ['card', 'link'];
+  // Verify webhook authorization header configured in RevenueCat dashboard
+  if (expectedAuth && authHeader !== expectedAuth) {
+    return c.json({ error: 'Unauthorized webhook' }, 401);
   }
-}
 
-export async function createSubscriptionCheckout(params: {
-  userId: string;
-  email: string;
-  tier: PlanTier;
-  currency?: SupportedCurrency;
-  priceId: string;
-  appUrl: string;
-}) {
-  const currency = (params.currency || 'USD').toLowerCase();
-  const paymentMethodTypes = getPaymentMethodsForCurrency((params.currency || 'USD') as SupportedCurrency);
+  const body = await c.req.json().catch(() => ({}));
+  const event = body.event;
+  if (!event) return c.json({ received: false }, 400);
 
-  return stripe.checkout.sessions.create({
-    customer_email: params.email,
-    client_reference_id: params.userId,
-    mode: 'subscription',
-    currency,
-    payment_method_types: paymentMethodTypes,
-    subscription_data: {
-      trial_period_days: 3, // 3-dniowy darmowy okres próbny dla każdego planu
-      metadata: {
-        userId: params.userId,
-        planTier: params.tier,
-      },
-    },
-     metadata: {
-      userId: params.userId,
-      planTier: params.tier,
-      currency: currency.toUpperCase(),
-    },
-    line_items: [{ price: params.priceId, quantity: 1 }],
-    success_url: `${params.appUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${params.appUrl}/subscription/cancel`,
-  });
-}
+  const userId = event.app_user_id;
+  const eventType = event.type; // INITIAL_PURCHASE, RENEWAL, CANCELLATION, EXPIRATION
+  const productId = event.product_id || '';
 
-export async function handleStripeWebhook(rawBody: string, signature: string) {
-  const event = await stripe.webhooks.constructEventAsync(
-    rawBody,
-    signature,
-    process.env.STRIPE_WEBHOOK_SECRET!
-  );
+  // Determine plan tier from product ID
+  let planTier: 'free' | 'pro' | 'master' = 'free';
+  if (productId.includes('master')) planTier = 'master';
+  else if (productId.includes('pro')) planTier = 'pro';
 
-  if (event.type === 'checkout.session.completed') {
-    const session = event.data.object as Stripe.Checkout.Session;
-    const userId = session.metadata?.userId || session.client_reference_id;
-    const planTier = session.metadata?.planTier || 'pro';
-    const currency = session.metadata?.currency || 'USD';
+  let status: 'trialing' | 'active' | 'past_due' | 'canceled' | 'inactive' = 'inactive';
+  if (eventType === 'INITIAL_PURCHASE' || eventType === 'RENEWAL') {
+    status = event.period_type === 'TRIAL' ? 'trialing' : 'active';
+  } else if (eventType === 'CANCELLATION') {
+    status = 'canceled';
+  } else if (eventType === 'EXPIRATION') {
+    status = 'inactive';
+    planTier = 'free';
+  }
 
-    if (userId) {
-      await supabaseAdmin
-        .from('user_subscriptions')
-        .upsert(
-          {
-            user_id: userId,
-            stripe_customer_id: String(session.customer),
-            stripe_subscription_id: String(session.subscription),
-            plan_tier: planTier,
-            currency,
-            status: 'trialing',
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'user_id' }
-        );
-    }
-  } else if (event.type === 'customer.subscription.deleted') {
-    const sub = event.data.object as Stripe.Subscription;
+  // Update Supabase user_subscriptions table
+  if (userId && userId.length === 36) { // check valid UUID
     await supabaseAdmin
       .from('user_subscriptions')
-      .update({
-        plan_tier: 'free',
-        status: 'canceled',
-        updated_at: new Date().toISOString(),
-      })
-      .eq('stripe_subscription_id', sub.id);
+      .upsert(
+        {
+          user_id: userId,
+          revenuecat_app_user_id: userId,
+          plan_tier: planTier,
+          status,
+          product_identifier: productId,
+          current_period_start: event.purchased_at_ms ? new Date(event.purchased_at_ms).toISOString() : null,
+          current_period_end: event.expiration_at_ms ? new Date(event.expiration_at_ms).toISOString() : null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      );
   }
 
-  return { received: true, type: event.type };
-}
+  return c.json({ received: true });
+});
 ```
-
----
-
-## 4. Wybór Języka Ojczystego w Aplikacji (User Experience)
-
-1. **Na starcie (Onboarding Screen):**
-   - Pierwszy ekran po instalacji pyta użytkownika: *"What is your native language?"* (języki: 🇪🇸 Spanish, 🇩🇪 German, 🇫🇷 French, 🇵🇱 Polish, 🇮🇹 Italian, 🇯🇵 Japanese, etc.).
-   - Wybór zapisuje się w profilu (`profiles.native_language`).
-2. **W Ustawieniach Profilu:**
-   - Użytkownik w każdej chwili może zmienić język tłumaczeń oraz preferowaną walutę.

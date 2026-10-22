@@ -13,8 +13,9 @@
 - **TTS:** Pronunciation audio is handled directly on-device using **`expo-speech`** (0ms latency, zero server cost, fully offline).
 - **Cost Optimization Invariant:** Translations are cached as static JSON in the root directory of **Cloudflare R2** (`/{hash}.json`). The mobile app performs a direct `GET` to the public Cloudflare R2 CDN link *before* contacting the backend.
 - Users can save single words or entire sentences directly into flashcards.
-- **Tinder-Style 4-Way Swipe Flashcards:** Fiszki działają jak stos kart w Tinderze z gestami w 4 kierunkach (Lewo = Powtórz, Prawo = Dobrze, Góra = Łatwe, Dół = Trudne) oraz obrotem 3D na tapnięcie.
-- **Multi-Currency Monetization (Default USD):** **Stripe** with 3 monthly subscription tiers (Starter $4.99, Pro $8.99, Master $16.99 in default USD), each with a **3-day free trial**. Dynamic localization: PLN (with BLIK) in Poland, EUR in the Eurozone, USD globally.
+- **Tinder-Style 4-Way Swipe Flashcards:** Flashcards operate as a 3D Tinder card stack with gestures in 4 directions (Left = Again, Down = Hard, Right = Good, Up = Easy) + 3D flip on tap.
+- **Native In-App Monetization (RevenueCat):** 2 monthly subscription tiers (Pro $8.99, Master $16.99 in default USD), each with a **3-day free trial**. Full App Store & Google Play In-App Purchase compliance (zero external checkout rejection risk).
+- **Interface Language:** The mobile app UI is 100% in **English**.
 
 ---
 
@@ -36,12 +37,12 @@
 ```
 /
 ├── apps/
-│   ├── mobile/         # Cross-platform Mobile App (React Native with Expo & TypeScript)
-│   └── backend/        # SaaS API & Fallback Service (Bun/Node.js + Hono + TypeScript)
+│   ├── mobile/         # Cross-platform Mobile App (React Native with Expo & TypeScript, English UI)
+│   └── backend/        # SaaS API & Fallback Service (Bun + Hono + TypeScript)
 ├── packages/
 │   └── shared/         # Shared TypeScript interfaces, Zod schemas, hash helpers, SRS logic
 ├── docs/               # Architecture and technical specs (all *.md files)
-└── .cursorrules / AGENTS.md (Ref: MOBILE_SCREENS_SPEC.md, OFFLINE_SQLITE_AND_SYNC.md, MOBILE_BOOTSTRAP_AND_CONFIG.md, STATE_MANAGEMENT.md, EDGE_CASES_AND_ERRORS.md, COMPONENT_SPECS.md, DEPLOYMENT_AND_EAS.md)
+└── .cursorrules / AGENTS.md (Ref: MOBILE_SCREENS_SPEC.md, DATA_FLOW_GLUE.md, OFFLINE_SQLITE_AND_SYNC.md, MOBILE_BOOTSTRAP_AND_CONFIG.md, STATE_MANAGEMENT.md, EDGE_CASES_AND_ERRORS.md, COMPONENT_SPECS.md, DEPLOYMENT_AND_EAS.md, INFRA_SETUP_CHECKLIST.md)
 ```
 
 ---
@@ -50,13 +51,13 @@
 
 1. **R2 Public Edge Cache First:**
    - On word/sentence tap, mobile app calculates:
-     `hash = sha256(word.trim().toLowerCase() + "_" + sentence.trim().toLowerCase() + "_" + targetLang.toLowerCase())`
+     `hash = sha256(cleanWordToken(word).toLowerCase() + "_" + sentence.trim().toLowerCase() + "_" + targetLang.toLowerCase())`
    - Mobile app executes: `GET ${PUBLIC_R2_URL}/${hash}.json`.
-   - On HTTP 404, mobile app calls `POST /api/v1/translate` on the backend.
-   - Backend translates with Gemini 2.5 Lite, uploads `/{hash}.json` to Cloudflare R2 root bucket, and returns it.
+   - On HTTP 404, mobile app calls `POST /api/v1/translate` on the backend with Authorization header.
+   - Backend translates with Gemini 2.5 Flash-Lite, validates with Zod, uploads `/{hash}.json` to Cloudflare R2 root bucket, and returns it.
 
 2. **No Secret Keys in Mobile App:**
-   - `GEMINI_API_KEY`, `CLOUDFLARE_R2_SECRET_ACCESS_KEY`, and `STRIPE_SECRET_KEY` reside strictly on `apps/backend`.
+   - `GEMINI_API_KEY`, `CLOUDFLARE_R2_SECRET_ACCESS_KEY`, and `REVENUECAT_WEBHOOK_AUTH_HEADER` reside strictly on `apps/backend`.
 
 3. **Subtitles & Video UX Rules:**
    - Video pauses automatically when a user taps a word/phrase.
@@ -67,9 +68,10 @@
    - Both individual words and full sentences can be saved to flashcards.
    - Review deck uses a 4-way gesture stack mapped to SM-2: Left (Again), Down (Hard), Right (Good), Up (Easy). Tap flips the card in 3D.
 
-5. **Stripe Subscriptions & Multi-Currency:**
-   - 3 Tiers: Starter, Pro, Master (monthly billing with 3-day trial).
-   - Local currencies: PLN (BLIK), EUR (SEPA), USD.
+5. **RevenueCat In-App Purchases & Subscriptions:**
+   - 2 Tiers: Pro ($8.99/mo), Master ($16.99/mo) with 3-day trial.
+   - Native Apple StoreKit 2 & Google Play Billing via `react-native-purchases`.
+   - Backend syncs via `/api/v1/revenuecat/webhook`.
 
 ---
 

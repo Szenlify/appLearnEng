@@ -92,9 +92,9 @@ W całej aplikacji obowiązuje zakaz używania systemowych emotek tekstowych Uni
   - Klikalny akordeon z ikoną `Lightbulb` (domyślnie szara `#94A3B8` `weight="regular"`, po kliknięciu/rozwinięciu `weight="fill"` `#FACC15`) rozwijający szczegółowe wyjaśnienie: dlaczego dane słowo zostało użyte w ten sposób w filmie, niuanse emocjonalne, czy to slang lub idiom.
 - **Warstwa 4: Przykład użycia:**
   - Zdanie przykładowe po angielsku z tłumaczeniem.
-- **Footer Action Buttons (Zapis do fiszek z ikonami Phosphor):**
-  - Button 1: **"Zapisz słówko"** z ikoną `BookmarkSimple` (domyślnie szara `#94A3B8` `weight="regular"`, po kliknięciu `weight="fill"` `#38BDF8`).
-  - Button 2: **"Zapisz całe zdanie"** z ikoną `NotePencil` (domyślnie szara `#94A3B8` `weight="regular"`, po kliknięciu `weight="fill"` `#10B981`).
+- **Footer Action Buttons (Zapis do fiszek z ikonami Phosphor, 100% English UI):**
+  - Button 1: **"Save Word"** z ikoną `BookmarkSimple` (domyślnie szara `#94A3B8` `weight="regular"`, po kliknięciu `weight="fill"` `#38BDF8`).
+  - Button 2: **"Save Sentence"** z ikoną `NotePencil` (domyślnie szara `#94A3B8` `weight="regular"`, po kliknięciu `weight="fill"` `#10B981`).
 
 ---
 

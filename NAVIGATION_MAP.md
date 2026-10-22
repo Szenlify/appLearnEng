@@ -1,6 +1,6 @@
 # NAVIGATION_MAP.md — Screen Hierarchy & Expo Router Structure
 
-This document details the exact file-based navigation structure in `apps/mobile/app` using **Expo Router (v3+)**.
+This document details the exact file-based navigation structure in `apps/mobile/app` using **Expo Router (v4+)**. All screens and UI labels are in **English**.
 
 ---
 
@@ -8,21 +8,22 @@ This document details the exact file-based navigation structure in `apps/mobile/
 
 ```
 app/
-├── _layout.tsx                 # Root layout (Fonts, Supabase Auth Provider, Dark Theme)
+├── _layout.tsx                 # Root layout (Fonts, Supabase Auth Provider, Dark Theme, Audio fix)
 ├── (auth)/                     # Unauthenticated Flow
 │   ├── _layout.tsx
-│   └── login.tsx               # Social Auth Only: Apple Sign In & Google Sign In
+│   ├── login.tsx               # Social Auth Only: Apple Sign In & Google Sign In
+│   └── callback.tsx            # Deep link redirect handler for Google OAuth
 │
 ├── (tabs)/                     # Main Bottom Tab Navigation
-│   ├── _layout.tsx             # Frosted Glass TabBar with BlurView
-│   ├── index.tsx               # 🔍 Odkrywaj (Explore / Input linku YouTube / Polecane filmy)
-│   ├── player.tsx              # 🎬 Odtwarzacz Wideo + Interaktywne Napisy
-│   ├── flashcards.tsx          # 🃏 Tinder-Style 4-Way Swipe Fiszki Deck
-│   └── profile.tsx             # 👤 Profil, Statystyki, Subskrypcja Stripe & Ustawienia
+│   ├── _layout.tsx             # Frosted Glass TabBar with BlurView (English labels)
+│   ├── index.tsx               # 🔍 Explore (Live YouTube Search + Curated CEFR Collections)
+│   ├── player.tsx              # 🎬 Video Player + Synchronized Interactive Subtitles
+│   ├── flashcards.tsx          # 🃏 Tinder-Style 4-Way Swipe Flashcards Deck
+│   └── profile.tsx             # 👤 Profile, Learning Stats, RevenueCat Subscriptions & Account Deletion
 │
 └── (modals)/                   # Floating / Fullscreen Modals
     ├── _layout.tsx             # presentation: 'modal'
-    └── paywall.tsx             # 💎 Stripe Paywall (Starter / Pro / Master + 3 Dni Trial)
+    └── paywall.tsx             # 💎 RevenueCat Native In-App Purchases (Pro / Master + 3-Day Trial)
 ```
 
 ---
@@ -65,7 +66,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Odkrywaj',
+          title: 'Explore',
           tabBarIcon: ({ color, size, focused }) => (
             <Compass color={color} size={size} weight={focused ? 'fill' : 'regular'} />
           ),
@@ -74,7 +75,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="player"
         options={{
-          title: 'Odtwarzacz',
+          title: 'Player',
           tabBarIcon: ({ color, size, focused }) => (
             <PlayCircle color={color} size={size} weight={focused ? 'fill' : 'regular'} />
           ),
@@ -83,7 +84,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="flashcards"
         options={{
-          title: 'Fiszki',
+          title: 'Flashcards',
           tabBarIcon: ({ color, size, focused }) => (
             <Cards color={color} size={size} weight={focused ? 'fill' : 'regular'} />
           ),
@@ -92,7 +93,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profil',
+          title: 'Profile',
           tabBarIcon: ({ color, size, focused }) => (
             <UserCircle color={color} size={size} weight={focused ? 'fill' : 'regular'} />
           ),
@@ -107,39 +108,39 @@ export default function TabsLayout() {
 
 ## 3. Screen Descriptions & Primary UX Flows
 
-### 3.1 Screen 1: Odkrywaj & Wyszukiwarka YouTube (`(tabs)/index.tsx`)
-- **Górny pasek wyszukiwania z Lupką (Live YouTube Search):**
-  - Pasek wyszukiwania z ikoną lupki `MagnifyingGlass` (`phosphor-react-native`: domyślnie szara `#94A3B8` `weight="regular"`, po kliknięciu/wpisaniu frazy `weight="fill"` `#38BDF8`).
-  - Brak wklejania linków i detekcji schowka — użytkownik szuka filmów identycznie jak w natywnej aplikacji YouTube (wpisując np. *„MrBeast”*, *„BBC News”*, *„Joe Rogan”*).
-  - Wyszukiwarka zwraca listę filmów prosto z YouTube wewnątrz aplikacji z miniaturkami HD, tytułami i długością.
-- **Gdy brak zapytania (Domyślny widok główny):**
-  - **Sekcja "Oglądaj dalej":** Kafelki ostatnio oglądanych filmów z paskiem postępu i liczbą zapisanych słówek.
-  - **Sekcja "Kategorie & Poziomy CEFR":**
-    - A1–A2: bajki, proste dialogi codzienne.
-    - B1–B2: TED-Ed, podcasty naukowe, wywiady.
-    - C1–C2: debaty, stand-up, przemówienia.
-- **Kliknięcie kafelka:** Natychmiastowe przejście do `/(tabs)/player?videoId={id}` z synchronizacją napisów.
+### 3.1 Screen 1: Explore & Live YouTube Search (`(tabs)/index.tsx`)
+- **Top Search Bar with Search Icon:**
+  - Search input with `MagnifyingGlass` (`phosphor-react-native`: default `#94A3B8` `weight="regular"`, switches to `#38BDF8` `weight="fill"` when focused).
+  - Placeholder: *"Search YouTube videos (e.g. MrBeast, TED, BBC)..."*.
+  - Live query returns matching YouTube videos with 16:9 thumbnails, channel names, duration, and `[CC] EN` badges.
+- **Default Dashboard (Empty Query):**
+  - **"Continue Watching" Section:** Recent videos with progress indicators.
+  - **"Recommended by CEFR Level" Section:** Curated videos categorized into A1–A2 (Daily Dialogues), B1–B2 (TED-Ed, Science), and C1–C2 (Interviews, Speeches).
+- **Video Tap:** Navigates directly to `/(tabs)/player?videoId={id}`.
 
-### 3.2 Screen 2: Odtwarzacz & Napisy (`(tabs)/player.tsx`)
-- Wideo YouTube osadzone w formacie 16:9 (`react-native-youtube-iframe`).
-- Pasek narzędzi pod wideo:
-  - Przycisk "Powtórz zdanie" (`ArrowCounterClockwise`).
-  - Płynny regulator prędkości wideo od **`0.25x` do `2.00x` stopniowo co `0.05`** (`MinusCircle`, `Gauge`, `PlusCircle`).
-- Poniżej: przewijany pasek napisów z automatycznym wyśrodkowaniem na aktualnie wymawianym zdaniu.
-- Kliknięcie słowa: automatyczna pauza wideo i wysunięcie `TranslationSheet` z tłumaczeniem.
-- Dwa przyciski zapisu z ikonami `BookmarkSimple` oraz `NotePencil`: *"Zapisz słówko"* oraz *"Zapisz całe zdanie"*.
+### 3.2 Screen 2: Video Player & Subtitles (`(tabs)/player.tsx`)
+- YouTube video player embedded in 16:9 aspect ratio (`react-native-youtube-iframe`).
+- Tooling strip under video:
+  - "Repeat Sentence" button (`ArrowCounterClockwise`).
+  - Smooth speed stepper: `0.25x` to `2.00x` in `0.05` steps (`MinusCircle`, `Gauge`, `PlusCircle`).
+- Subtitle strip below: auto-scrolls to keep current spoken cue centered.
+- Word tap: pauses playback immediately and slides up `TranslationSheet`.
+- Action buttons: *"Save Word"* (`BookmarkSimple`) and *"Save Sentence"* (`NotePencil`).
 
-### 3.3 🃏 Screen 3: Fiszki Tinder-Deck (`(tabs)/flashcards.tsx`)
-- Stos 3 kart z animacją `react-native-reanimated`.
-- Gesty w 4 osiach:
-  - ⬅️ Lewo: Powtórz (Again)
-  - ⬇️ Dół: Trudne (Hard)
-  - ➡️ Prawo: Dobrze (Good)
-  - ⬆️ Góra: Łatwe (Easy)
-- Tapnięcie obraca kartę w 3D (angielski przód -> polski tył z kontekstem z filmu).
+### 3.3 Screen 3: Tinder-Style Flashcards Deck (`(tabs)/flashcards.tsx`)
+- 3-card stack with `react-native-reanimated` (v3).
+- 4-way gesture mapping:
+  - ⬅️ Left: Again (Red)
+  - ⬇️ Down: Hard (Orange)
+  - ➡️ Right: Good (Green)
+  - ⬆️ Up: Easy (Cyan)
+- Tap flips the card in 3D (English front -> definition/translation & source context on back).
+- Manual action buttons in bottom dock for users who prefer tapping over swiping.
 
-### 3.4 👤 Screen 4: Profil & Ustawienia (`(tabs)/profile.tsx`)
-- Informacje o koncie i poziom CEFR.
-- Statystyka: łączna liczba poznanych słówek, dni z rzędu (Streak), obejrzane minuty.
-- Status subskrypcji Stripe (Aktywny plan: Starter / Pro / Master / Dni trialu).
-- Przycisk *"Zarządzaj subskrypcją"* otwierający Stripe Customer Portal.
+### 3.4 Screen 4: Profile & Settings (`(tabs)/profile.tsx`)
+- User avatar, email, and CEFR level pill.
+- Learning statistics (3 columns): Words Learned, Day Streak (`Fire` icon), Study Time.
+- Subscription status: Free tier quota display or active plan (Pro, Master).
+- "Manage Subscription" (opens native App Store / Google Play subscription management).
+- "Restore Purchases" button (calls `Purchases.restorePurchases()`).
+- "Sign Out" and "Delete Account" buttons (with confirmation dialog).

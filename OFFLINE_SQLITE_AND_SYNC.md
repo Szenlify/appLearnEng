@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS local_flashcards (
     cefr_level TEXT,
     r2_cache_hash TEXT,
     video_id TEXT,
-    video_timestamp_sec INTEGER,
+    video_timestamp_sec REAL,
     
     -- Parametry algorytmu SM-2
     repetitions INTEGER NOT NULL DEFAULT 0,
@@ -93,7 +93,7 @@ async function initDatabase(db: SQLite.SQLiteDatabase) {
       cefr_level TEXT,
       r2_cache_hash TEXT,
       video_id TEXT,
-      video_timestamp_sec INTEGER,
+      video_timestamp_sec REAL,
       repetitions INTEGER NOT NULL DEFAULT 0,
       interval_days INTEGER NOT NULL DEFAULT 1,
       ease_factor REAL NOT NULL DEFAULT 2.50,
@@ -287,24 +287,29 @@ let debounceTimeout: NodeJS.Timeout | null = null;
 let isSyncing = false;
 
 export const FlashcardSyncEngine = {
-  async init(userId: string) {
+  async init(userId: string): Promise<() => void> {
     // 1. Najpierw wypchnij ewentualne zaległe zmiany offline, a potem pobierz stan z chmury
     await FlashcardSyncEngine.flush(userId);
     await FlashcardSyncEngine.pullFromServer(userId);
 
     // 2. Reakcja na przejście aplikacji w tło
-    AppState.addEventListener('change', (nextState: AppStateStatus) => {
+    const appStateSub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
       if (nextState === 'background' || nextState === 'inactive') {
         FlashcardSyncEngine.flush(userId);
       }
     });
 
     // 3. Reakcja na powrót sieci
-    NetInfo.addEventListener((state) => {
+    const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
       if (state.isConnected) {
         FlashcardSyncEngine.flush(userId);
       }
     });
+
+    return () => {
+      appStateSub.remove();
+      unsubscribeNetInfo();
+    };
   },
 
   /**

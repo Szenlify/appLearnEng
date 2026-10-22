@@ -24,12 +24,9 @@ Lokalizacja: `apps/mobile/app.json`
       "backgroundColor": "#0B0F19"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.softileo.learneng",
-      "usesAppleSignIn": true,
-      "infoPlist": {
-        "UIBackgroundModes": ["audio"]
-      }
+      "usesAppleSignIn": true
     },
     "android": {
       "adaptiveIcon": {
@@ -45,7 +42,8 @@ Lokalizacja: `apps/mobile/app.json`
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "react-native-purchases"
     ],
     "experiments": {
       "typedRoutes": true
@@ -63,7 +61,7 @@ Lokalizacja: `apps/mobile/eas.json`
 ```json
 {
   "cli": {
-    "version": ">= 9.0.0"
+    "version": ">= 12.0.0"
   },
   "build": {
     "development": {
@@ -83,7 +81,8 @@ Lokalizacja: `apps/mobile/eas.json`
         "EXPO_PUBLIC_R2_URL": "https://cache.applearneng.com",
         "EXPO_PUBLIC_SUPABASE_URL": "https://your-project.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOi...",
-        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_..."
+        "EXPO_PUBLIC_RC_IOS_KEY": "appl_...",
+        "EXPO_PUBLIC_RC_ANDROID_KEY": "goog_..."
       }
     },
     "production": {
@@ -93,7 +92,8 @@ Lokalizacja: `apps/mobile/eas.json`
         "EXPO_PUBLIC_R2_URL": "https://cache.applearneng.com",
         "EXPO_PUBLIC_SUPABASE_URL": "https://your-project.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOi...",
-        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_live_..."
+        "EXPO_PUBLIC_RC_IOS_KEY": "appl_...",
+        "EXPO_PUBLIC_RC_ANDROID_KEY": "goog_..."
       }
     }
   },

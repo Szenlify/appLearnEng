@@ -62,13 +62,13 @@ Nie wolno zaczynać kolejnego etapu, dopóki etap bieżący nie zostanie przetes
 ---
 
 ### 🟢 ETAP 3: Fallback Gemini 2.5 Lite, Quota Guard & Zapis do Cloudflare R2
-* **Zakres prac:** `POST /api/v1/translate` (`generateContextualTranslation` z obsługą phrasal verbs, `R2StorageService.saveTranslationToRoot` oraz `evaluateQuota` z limitem 50/24h dla planu `free`).
+* **Zakres prac:** `POST /api/v1/translate` (`generateContextualTranslation` z obsługą phrasal verbs, `R2StorageService.saveTranslationToRoot` oraz `evaluateQuota` z limitem 30/24h dla planu `free`).
 * **Pliki testowe:** `apps/backend/src/__tests__/translate.test.ts`
 * **Wymagane testy (z mockiem Gemini i S3 client):**
   1. Walidacja body żądania (brak `word` lub `sentence` rzuca HTTP 400).
   2. Sprawdzenie, czy funkcja generuje poprawny hash pliku i wywołuje upload do S3/R2 pod klucz `${hash}.json` w roocie bucketa.
   3. Zwracany obiekt ma wszystkie pola: `simple_definition`, `contextual_translation`, `context_explanation`, `ipa`, `cefr_level`, `example_sentence_native`.
-  4. Weryfikacja `evaluateQuota`: zwrot `QUOTA_EXCEEDED` (HTTP 429) po 50 zapytaniach na planie `free`, automatyczny reset po 24h oraz brak limitu dla statusu `trialing`/`active`.
+  4. Weryfikacja `evaluateQuota`: zwrot `QUOTA_EXCEEDED` (HTTP 429) po 30 zapytaniach na planie `free` (`DAILY_FREE_AI_LIMIT = 30`), automatyczny reset po 24h oraz brak limitu dla statusu `trialing`/`active` na planach `pro` i `master`.
 * **Komenda bramki:** `bun test apps/backend/src/__tests__/translate.test.ts`
 
 ---
@@ -79,8 +79,8 @@ Nie wolno zaczynać kolejnego etapu, dopóki etap bieżący nie zostanie przetes
 * **Wymagane testy:**
   1. **Grade 0 (Swipe w Lewo / Powtórz):** zeruje powtórzenia (`repetitions = 0`), interwał = 1 dzień.
   2. **Grade 1 (Swipe w Dół / Trudne):** zmniejsza współczynnik łatwości (`easeFactor`), interwał = 1-2 dni.
-  3. **Grade 2 (Swipe w Prawo / Dobrze):** standardowy progres interwału (np. 1 -> 3 -> 7 dni).
-  4. **Grade 3 (Swipe w Górę / Łatwe):** zwiększa interwał i współczynnik łatwości.
+  3. **Grade 2 (Swipe w Prawo / Dobrze):** standardowy progres interwału (1 -> 3 -> 8 dni przy EF=2.50).
+  4. **Grade 3 (Swipe w Górę / Łatwe):** zwiększa interwał (2 -> 6 -> 18 dni) i współczynnik łatwości.
   5. Minimalny próg współczynnika łatwości nigdy nie spada poniżej $1.3$.
 * **Komenda bramki:** `bun test packages/shared/src/__tests__/srs.test.ts`
 
@@ -119,16 +119,16 @@ Nie wolno zaczynać kolejnego etapu, dopóki etap bieżący nie zostanie przetes
 
 ---
 
-### 🟢 ETAP 8: Offline SQLite (Push & Pull Sync), Talia Fiszek Tinder 4-Way Swipe, Płatności Stripe & Webhooki
-* **Zakres prac:** Lokalna baza `expo-sqlite` (`LocalFlashcardsRepository`), dwukierunkowy silnik synchronizacji zbiorczej (`FlashcardSyncEngine`: `flush` + `pullFromServer`), ekran powtórek `TinderCard` / `flashcards.tsx` z haptyką `expo-haptics`, ekran `profile.tsx`, modal `paywall.tsx`, tworzenie sesji Stripe Checkout i asynchroniczna weryfikacja webhooków (`constructEventAsync`).
-* **Pliki testowe:** `apps/mobile/__tests__/sqlite-sync.test.ts` oraz `apps/backend/src/__tests__/stripe.test.ts`
+### 🟢 ETAP 8: Offline SQLite (Push & Pull Sync), Talia Fiszek Tinder 4-Way Swipe, Płatności RevenueCat & Webhooki
+* **Zakres prac:** Lokalna baza `expo-sqlite` (`LocalFlashcardsRepository`), dwukierunkowy silnik synchronizacji zbiorczej (`FlashcardSyncEngine`: `flush` + `pullFromServer`), ekran powtórek `TinderCard` / `flashcards.tsx` z haptyką `expo-haptics`, ekran `profile.tsx`, modal `paywall.tsx`, obsługa webhooków RevenueCat (`POST /api/v1/revenuecat/webhook`) i usuwanie konta (`DELETE /api/v1/user/account`).
+* **Pliki testowe:** `apps/mobile/__tests__/sqlite-sync.test.ts` oraz `apps/backend/src/__tests__/revenuecat.test.ts`
 * **Wymagane testy:**
   1. Lokalny zapis fiszki ustawia `sync_status = 'pending_insert'`, a swipe ustawia `'pending_update'` i po `flush()` zmienia status na `'synced'`.
   2. `pullFromServer()` pobiera fiszki z chmury bez nadpisywania lokalnych niesynchronizowanych zmian.
-  3. Tworzenie sesji checkoutu uwzględnia `trial_period_days: 3` dla wszystkich 3 planów (Starter, Pro, Master).
-  4. Poprawne waluty i metody płatności dla rynków: PLN dla Polski (z `blik` i `p24`), EUR dla strefy Euro (`sepa_debit`), USD globalnie.
-  5. Webhook `checkout.session.completed` aktywuje subskrypcję w bazie, a `customer.subscription.deleted` cofa uprawnienia do planu darmowego.
-* **Komenda bramki:** `bun test apps/mobile/__tests__/sqlite-sync.test.ts apps/backend/src/__tests__/stripe.test.ts` && `bun test`
+  3. Webhook RevenueCat `INITIAL_PURCHASE` z `period_type: 'TRIAL'` ustawia w `user_subscriptions` `status = 'trialing'`, a `RENEWAL` ustawia `status = 'active'`.
+  4. Webhook RevenueCat `EXPIRATION` cofa uprawnienia do `plan_tier = 'free'` i `status = 'inactive'`.
+  5. Endpoint usuwania konta `DELETE /api/v1/user/account` usuwa użytkownika z Supabase auth i bazy.
+* **Komenda bramki:** `bun test apps/mobile/__tests__/sqlite-sync.test.ts apps/backend/src/__tests__/revenuecat.test.ts` && `bun test`
 
 ---
 

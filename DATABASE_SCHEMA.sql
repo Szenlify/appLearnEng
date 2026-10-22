@@ -13,25 +13,37 @@ CREATE TABLE public.profiles (
     email VARCHAR(255) NOT NULL,
     full_name VARCHAR(100),
     avatar_url TEXT,
-    native_language VARCHAR(10) NOT NULL DEFAULT 'pl', -- 'pl', 'es', 'de', 'fr', 'it', 'ja'
-    preferred_currency VARCHAR(10) NOT NULL DEFAULT 'USD', -- 'USD', 'EUR', 'PLN', 'JPY'
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    native_language VARCHAR(10) NOT NULL DEFAULT 'en', -- default learning/translation target
+    preferred_currency VARCHAR(10) NOT NULL DEFAULT 'USD',
+    
+    -- Learning stats
+    words_learned_count INT DEFAULT 0,
+    current_streak_days INT DEFAULT 0,
+    last_study_date DATE,
+    total_study_minutes INT DEFAULT 0,
+    cefr_level VARCHAR(5) DEFAULT 'B1',
+
+    -- AI translation quotas
     daily_ai_requests_count INT DEFAULT 0,
-    last_request_reset_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    last_request_reset_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- ------------------------------------------------------------------------------
--- 2. SUBSCRIPTIONS TABLE (Stripe Multi-Currency Synchronization)
+-- 2. SUBSCRIPTIONS TABLE (RevenueCat In-App Purchases Synchronization)
 -- ------------------------------------------------------------------------------
 CREATE TABLE public.user_subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL UNIQUE REFERENCES public.profiles(id) ON DELETE CASCADE,
-    stripe_customer_id VARCHAR(255) UNIQUE,
-    stripe_subscription_id VARCHAR(255) UNIQUE,
-    plan_tier VARCHAR(30) NOT NULL DEFAULT 'free', -- 'free', 'starter', 'pro', 'master'
-    currency VARCHAR(10) NOT NULL DEFAULT 'USD',
+    revenuecat_app_user_id VARCHAR(255) UNIQUE,
+    original_app_user_id VARCHAR(255),
+    plan_tier VARCHAR(30) NOT NULL DEFAULT 'free', -- 'free', 'pro', 'master'
+    store VARCHAR(50), -- 'app_store', 'play_store', 'promotional'
     status VARCHAR(50) NOT NULL DEFAULT 'inactive', -- 'trialing', 'active', 'past_due', 'canceled'
+    active_entitlement VARCHAR(100), -- e.g. 'pro_access', 'master_access'
+    product_identifier VARCHAR(255),
     trial_start TIMESTAMP WITH TIME ZONE,
     trial_end TIMESTAMP WITH TIME ZONE,
     current_period_start TIMESTAMP WITH TIME ZONE,
@@ -47,9 +59,9 @@ CREATE TABLE public.user_subscriptions (
 CREATE TABLE public.user_flashcards (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-    type VARCHAR(20) NOT NULL DEFAULT 'word', -- 'word' LUB 'sentence'
-    target_text VARCHAR(255) NOT NULL,        -- English word/phrase OR English sentence
-    translation TEXT NOT NULL,                -- Native language translation
+    type VARCHAR(20) NOT NULL DEFAULT 'word', -- 'word' OR 'sentence'
+    target_text TEXT NOT NULL,                 -- English word/phrase OR full English sentence
+    translation TEXT NOT NULL,                -- Definition or translation
     simple_definition TEXT,                   -- Simple definition
     context_sentence TEXT,                    -- Source sentence from video (for type='word')
     context_explanation TEXT,                 -- "Explain in context" details
@@ -59,7 +71,7 @@ CREATE TABLE public.user_flashcards (
     cefr_level VARCHAR(5),                    -- 'A1', 'A2', 'B1', 'B2', 'C1', 'C2'
     r2_cache_hash VARCHAR(64),                -- SHA-256 hash in Cloudflare R2
     video_id VARCHAR(50),                     -- YouTube Video ID
-    video_timestamp_sec INT,                  -- Video playback moment
+    video_timestamp_sec NUMERIC(8, 2),        -- Video playback moment (float support)
     
     -- SM-2 Algorithm State
     repetitions INT NOT NULL DEFAULT 0,
@@ -82,7 +94,7 @@ CREATE TABLE public.user_watch_history (
     video_id VARCHAR(50) NOT NULL,
     video_title VARCHAR(255),
     thumbnail_url TEXT,
-    last_position_sec INT DEFAULT 0,
+    last_position_sec NUMERIC(8, 2) DEFAULT 0,
     duration_sec INT DEFAULT 0,
     last_watched_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(user_id, video_id)
@@ -110,7 +122,7 @@ CREATE POLICY "Users manage own flashcards" ON public.user_flashcards
 CREATE POLICY "Users manage own watch history" ON public.user_watch_history
     FOR ALL USING (auth.uid() = user_id);
 
--- Subscriptions: Read-only for users; backend handles writes
+-- Subscriptions: Read-only for users; backend service role handles writes
 CREATE POLICY "Users can read own subscription" ON public.user_subscriptions
     FOR SELECT USING (auth.uid() = user_id);
 
@@ -126,12 +138,12 @@ BEGIN
         NEW.email,
         NEW.raw_user_meta_data->>'full_name',
         NEW.raw_user_meta_data->>'avatar_url',
-        COALESCE(NEW.raw_user_meta_data->>'native_language', 'pl'),
+        COALESCE(NEW.raw_user_meta_data->>'native_language', 'en'),
         COALESCE(NEW.raw_user_meta_data->>'preferred_currency', 'USD')
     );
     
-    INSERT INTO public.user_subscriptions (user_id, plan_tier, status, currency)
-    VALUES (NEW.id, 'free', 'inactive', COALESCE(NEW.raw_user_meta_data->>'preferred_currency', 'USD'));
+    INSERT INTO public.user_subscriptions (user_id, plan_tier, status, revenuecat_app_user_id)
+    VALUES (NEW.id, 'free', 'inactive', NEW.id::text);
     
     RETURN NEW;
 END;

@@ -129,3 +129,38 @@ export function resolveAuthRedirect(
 In `apps/mobile/app/_layout.tsx`:
 - Listen to `supabase.auth.onAuthStateChange`.
 - Call `resolveAuthRedirect(Boolean(session), segments[0])` and execute `router.replace(target)` when non-null.
+
+---
+
+## 5. Account Deletion (Apple App Store Guideline 5.1.1v Compliance)
+
+Apple requires all applications offering account creation to provide an easy, in-app way to initiate account deletion:
+
+### Backend Endpoint: `DELETE /api/v1/user/account`
+- Validates the user's Supabase JWT from the `Authorization: Bearer <token>` header.
+- Calls `supabaseAdmin.auth.admin.deleteUser(user.id)`.
+- Cascades deletion across `public.profiles`, `public.user_subscriptions`, `public.user_flashcards`, and `public.user_watch_history`.
+
+### Mobile Implementation (`apps/mobile/lib/account.ts` & re-exported in `apps/mobile/lib/auth.ts`):
+```typescript
+import { supabase } from '@/lib/supabase';
+
+export async function deleteUserAccount(): Promise<void> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) throw new Error('NOT_AUTHENTICATED');
+
+  const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/v1/user/account`, {
+    method: 'DELETE',
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error('DELETE_ACCOUNT_FAILED');
+  }
+
+  // Clear local session and cache
+  await supabase.auth.signOut();
+}
+```

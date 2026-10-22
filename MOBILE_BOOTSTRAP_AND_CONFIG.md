@@ -1,6 +1,6 @@
 # MOBILE_BOOTSTRAP_AND_CONFIG.md — Monorepo Scaffolding, NativeWind v4 & Dependencies
 
-Dokument zawiera zablokowane, przetestowane konfiguracje plików konfiguracyjnych dla monorepo z **Expo SDK 51**, **React Native 0.74**, **NativeWind v4** oraz **react-native-reanimated v3**.
+Dokument zawiera zablokowane, przetestowane konfiguracje plików konfiguracyjnych dla monorepo z **Expo SDK 57+**, **React Native 0.85+**, **React 19**, **NativeWind v4**, **RevenueCat (`react-native-purchases`)** oraz **react-native-reanimated**.
 
 AI implementujące aplikację ma obowiązek użyć poniższych szablonów 1:1, co eliminuje 100% typowych błędów kompilacji CSS i bundlera Metro w środowiskach Expo.
 
@@ -26,10 +26,10 @@ Lokalizacja: `/package.json`
     "lint": "turbo run lint"
   },
   "devDependencies": {
-    "turbo": "^2.0.0",
-    "typescript": "^5.4.5"
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.0"
   },
-  "packageManager": "bun@1.1.18"
+  "packageManager": "bun@1.1.42"
 }
 ```
 
@@ -75,11 +75,11 @@ Lokalizacja: `packages/shared/package.json`
     "test": "bun test"
   },
   "dependencies": {
-    "@noble/hashes": "^1.4.0",
-    "zod": "^3.23.8"
+    "@noble/hashes": "^1.6.0",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
-    "typescript": "^5.4.5"
+    "typescript": "^5.7.0"
   }
 }
 ```
@@ -95,18 +95,17 @@ Lokalizacja: `apps/backend/package.json`
     "test": "bun test"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "^3.600.0",
+    "@aws-sdk/client-s3": "^3.714.0",
     "@google/genai": "^2.3.0",
     "@learneng/shared": "*",
-    "@supabase/supabase-js": "^2.45.0",
-    "fast-xml-parser": "^4.4.0",
-    "hono": "^4.4.0",
-    "stripe": "^16.2.0",
-    "zod": "^3.23.8"
+    "@supabase/supabase-js": "^2.47.10",
+    "fast-xml-parser": "^4.5.1",
+    "hono": "^4.6.14",
+    "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "typescript": "^5.4.5"
+    "typescript": "^5.7.0"
   }
 }
 ```
@@ -152,42 +151,45 @@ Lokalizacja: `apps/mobile/package.json`
     "test": "bun test"
   },
   "dependencies": {
+    "@gorhom/bottom-sheet": "^4.6.4",
     "@learneng/shared": "*",
-    "@react-native-community/netinfo": "11.3.1",
-    "@supabase/supabase-js": "^2.45.0",
-    "@tanstack/react-query": "^5.51.1",
-    "expo": "~51.0.28",
-    "expo-apple-authentication": "~6.4.2",
-    "expo-av": "~14.0.7",
-    "expo-blur": "~13.0.2",
-    "expo-constants": "~16.0.2",
-    "expo-haptics": "~13.0.1",
-    "expo-linking": "~6.3.1",
-    "expo-router": "~3.5.23",
-    "expo-secure-store": "~13.0.2",
-    "expo-speech": "~12.0.2",
-    "expo-sqlite": "~14.0.6",
-    "expo-status-bar": "~1.12.1",
-    "expo-web-browser": "~13.0.3",
-    "nativewind": "^4.0.1",
+    "@react-native-community/netinfo": "11.4.1",
+    "@supabase/supabase-js": "^2.47.10",
+    "@tanstack/react-query": "^5.62.8",
+    "expo": "^57.0.0",
+    "expo-apple-authentication": "~7.0.1",
+    "expo-av": "~15.0.1",
+    "expo-blur": "~14.0.1",
+    "expo-constants": "~17.0.3",
+    "expo-crypto": "~14.0.1",
+    "expo-haptics": "~14.0.0",
+    "expo-linking": "~7.0.3",
+    "expo-router": "~4.0.9",
+    "expo-secure-store": "~14.0.0",
+    "expo-speech": "~13.0.0",
+    "expo-sqlite": "~15.0.3",
+    "expo-status-bar": "~2.0.0",
+    "expo-web-browser": "~14.0.1",
+    "nativewind": "^4.1.23",
     "phosphor-react-native": "^2.0.1",
-    "react": "18.2.0",
-    "react-dom": "18.2.0",
-    "react-native": "0.74.5",
-    "react-native-gesture-handler": "~2.16.1",
-    "react-native-reanimated": "~3.10.1",
-    "react-native-safe-area-context": "4.10.5",
-    "react-native-screens": "3.31.1",
-    "react-native-svg": "15.2.0",
-    "react-native-webview": "13.8.6",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-native": "0.85.2",
+    "react-native-gesture-handler": "~2.20.2",
+    "react-native-purchases": "^8.4.0",
+    "react-native-reanimated": "~3.16.1",
+    "react-native-safe-area-context": "4.12.0",
+    "react-native-screens": "~4.4.0",
+    "react-native-svg": "15.8.0",
+    "react-native-webview": "13.12.5",
     "react-native-youtube-iframe": "^2.3.4",
-    "zustand": "^4.5.4"
+    "zustand": "^4.5.5"
   },
   "devDependencies": {
-    "@babel/core": "^7.24.0",
-    "@types/react": "~18.2.45",
-    "tailwindcss": "^3.3.2",
-    "typescript": "^5.4.5"
+    "@babel/core": "^7.26.0",
+    "@types/react": "~19.0.0",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.0"
   },
   "private": true
 }

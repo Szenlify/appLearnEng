@@ -75,7 +75,7 @@ export default function ExploreScreen() {
           onChangeText={setSearchQuery}
           onFocus={() => setIsSearchFocused(true)}
           onBlur={() => setIsSearchFocused(false)}
-          placeholder="Szukaj filmów na YouTube (np. MrBeast, TED)..."
+          placeholder="Search YouTube videos (e.g. MrBeast, TED)..."
           placeholderTextColor="#64748B"
           className="flex-1 text-white text-base py-1 ml-2.5 font-medium"
           returnKeyType="search"
@@ -98,7 +98,7 @@ export default function ExploreScreen() {
         isSearching ? (
           <View className="flex-1 items-center justify-center">
             <ActivityIndicator size="large" color="#38BDF8" />
-            <Text className="text-slate-400 mt-3 text-sm">Wyszukiwanie w YouTube...</Text>
+            <Text className="text-slate-400 mt-3 text-sm">Searching YouTube...</Text>
           </View>
         ) : (
           <FlatList
@@ -134,7 +134,7 @@ export default function ExploreScreen() {
           data={CURATED_VIDEOS}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={
-            <Text className="text-xl font-bold text-white mb-3">Polecane do Nauki (CEFR)</Text>
+            <Text className="text-xl font-bold text-white mb-3">Recommended by CEFR Level</Text>
           }
           renderItem={({ item }) => (
             <Pressable
@@ -235,24 +235,32 @@ Sercowy ekran aplikacji łączący odtwarzacz YouTube (`react-native-youtube-ifr
 `react-native-youtube-iframe` **nie posiada** propa `onTimeUpdate` ani `onProgress`. Synchronizację realizuje pętla interwałowa odpytująca `getCurrentTime()`, a prędkość odtwarzania regulowana jest w krokach co `0.05` (`stepPlaybackRate(playbackRate, ±0.05)`):
 
 ```typescript
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import YoutubePlayer, { YoutubeIframeRef } from 'react-native-youtube-iframe';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import * as Crypto from 'expo-crypto';
 import { ArrowCounterClockwise, MinusCircle, PlusCircle, Gauge, WarningCircle } from 'phosphor-react-native';
 import { usePlayerStore, QUERY_KEYS, stepPlaybackRate } from '@/stores/usePlayerStore';
 import { SubtitleTrack } from '@/components/player/SubtitleTrack';
 import { TranslationSheet } from '@/components/sheets/TranslationSheet';
 import { LocalFlashcardsRepository } from '@/lib/db/LocalFlashcardsRepository';
 import { FlashcardSyncEngine } from '@/lib/db/FlashcardSyncEngine';
+import { supabase } from '@/lib/supabase';
 
 export default function PlayerScreen() {
   const { videoId: paramVideoId } = useLocalSearchParams<{ videoId?: string }>();
   const playerRef = useRef<YoutubeIframeRef>(null);
   
-  const videoId = paramVideoId || 'UF8uR6Z6KLc'; // Fallback do Steve Jobs Stanford Speech
-  const currentUserId = 'local_user';
+  const videoId = paramVideoId || 'UF8uR6Z6KLc'; // Fallback to Steve Jobs Stanford Speech
+  const [currentUserId, setCurrentUserId] = useState<string>('');
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setCurrentUserId(user.id);
+    });
+  }, []);
   
   const {
     isPlaying,
@@ -270,7 +278,7 @@ export default function PlayerScreen() {
     closeTranslation,
   } = usePlayerStore();
 
-  // 1. Pętla synchronizacji czasu z YouTube IFrame
+  // 1. Time synchronization loop with YouTube IFrame
   useEffect(() => {
     let interval: NodeJS.Timeout | null = null;
 
@@ -282,9 +290,9 @@ export default function PlayerScreen() {
             setCurrentTime(time);
           }
         } catch {
-          // Iframe może być w trakcie buforowania
+          // Iframe may be buffering
         }
-      }, 150); // 150ms: idealna płynność bez obciążenia wątku JS
+      }, 150); // 150ms: ideal responsiveness without JS thread overload
     }
 
     return () => {
@@ -292,7 +300,7 @@ export default function PlayerScreen() {
     };
   }, [isPlaying, setCurrentTime]);
 
-  // 2. Pobieranie transkrypcji (TanStack Query)
+  // 2. Fetch transcript cues (TanStack Query)
   const { data: captionsData, isLoading, error } = useQuery({
     queryKey: QUERY_KEYS.captions(videoId),
     queryFn: async () => {
@@ -311,7 +319,7 @@ export default function PlayerScreen() {
     }
   }, [captionsData, setCaptions]);
 
-  // 3. Obsługa pauzowania i wznawiania
+  // 3. Pause & resume handling on word selection
   const handleWordPress = useCallback((word: string, contextSentence: string) => {
     setIsPlaying(false);
     openTranslation(word, contextSentence);
@@ -319,10 +327,10 @@ export default function PlayerScreen() {
 
   const handleCloseSheet = useCallback(() => {
     closeTranslation();
-    setIsPlaying(true); // Auto-wznowienie odtwarzania
+    setIsPlaying(true); // Auto-resume playback
   }, [closeTranslation, setIsPlaying]);
 
-  // 4. Skok do początku bieżącego zdania (Powtórz zdanie)
+  // 4. Repeat current sentence from beginning
   const handleRepeatSentence = useCallback(async () => {
     const activeCue = cues.find(c => currentTime >= c.start && currentTime <= c.end);
     if (activeCue && playerRef.current) {
@@ -331,7 +339,7 @@ export default function PlayerScreen() {
     }
   }, [cues, currentTime, setCurrentTime]);
 
-  // 5. Płynna zmiana prędkości od 0.25x do 2.00x co 0.05
+  // 5. Smooth speed adjustment from 0.25x to 2.00x in 0.05 steps
   const handleAdjustSpeed = useCallback((delta: number) => {
     const nextRate = stepPlaybackRate(playbackRate, delta);
     setPlaybackRate(nextRate);
@@ -343,7 +351,7 @@ export default function PlayerScreen() {
 
   return (
     <View className="flex-1 bg-[#0B0F19]">
-      {/* 1. Odtwarzacz YouTube w formacie 16:9 */}
+      {/* 1. YouTube Player in 16:9 aspect ratio */}
       <View className="w-full aspect-video bg-black">
         <YoutubePlayer
           ref={playerRef}
@@ -364,7 +372,7 @@ export default function PlayerScreen() {
         />
       </View>
 
-      {/* 2. Pasek pomocniczy pod wideo: Powtórz zdanie & Prędkość 0.25x - 2.00x (co 0.05) */}
+      {/* 2. Tooling bar below video: Repeat sentence & Playback Speed 0.25x - 2.00x */}
       <View className="flex-row items-center justify-between px-4 py-2 border-b border-slate-800 bg-[#161F30]/60">
         <Pressable
           onPress={handleRepeatSentence}
@@ -377,12 +385,12 @@ export default function PlayerScreen() {
                 color={pressed ? '#38BDF8' : '#94A3B8'}
                 weight={pressed ? 'fill' : 'regular'}
               />
-              <Text className="text-slate-200 font-semibold text-xs ml-1.5">Powtórz zdanie</Text>
+              <Text className="text-slate-200 font-semibold text-xs ml-1.5">Repeat Sentence</Text>
             </>
           )}
         </Pressable>
 
-        {/* Regulator prędkości 0.25x - 2.00x co 0.05 */}
+        {/* Speed stepper */}
         <View className="flex-row items-center bg-slate-800 rounded-lg px-2 py-1 space-x-2">
           <Pressable
             onPress={() => handleAdjustSpeed(-0.05)}
@@ -425,19 +433,19 @@ export default function PlayerScreen() {
         </View>
       </View>
 
-      {/* 3. Pasek napisów lub baner błędu */}
+      {/* 3. Subtitles track or error banner */}
       <View className="flex-1">
         {isLoading ? (
           <View className="flex-1 items-center justify-center">
             <ActivityIndicator size="large" color="#38BDF8" />
-            <Text className="text-slate-400 mt-2 text-sm">Ładowanie synchronizowanych napisów...</Text>
+            <Text className="text-slate-400 mt-2 text-sm">Loading synchronized subtitles...</Text>
           </View>
         ) : error?.message === 'NO_CAPTIONS_AVAILABLE' ? (
           <View className="p-6 m-4 rounded-2xl bg-amber-950/40 border border-amber-600/30 items-center">
             <WarningCircle size={28} color="#F59E0B" weight="fill" />
-            <Text className="text-amber-400 font-bold text-base mt-2 mb-1">Ten film nie posiada angielskich napisów</Text>
+            <Text className="text-amber-400 font-bold text-base mt-2 mb-1">This video has no English subtitles</Text>
             <Text className="text-slate-400 text-xs text-center mb-4">
-              Wyszukaj inny film za pomocą lupki lub wybierz jeden z polecanych materiałów w zakładce Odkrywaj.
+              Search for another video or choose one of our recommended videos in Explore.
             </Text>
           </View>
         ) : (
@@ -450,16 +458,17 @@ export default function PlayerScreen() {
         )}
       </View>
 
-      {/* 4. Bottom Sheet z tłumaczeniem */}
+      {/* 4. Translation Bottom Sheet */}
       <TranslationSheet
         isOpen={isSheetOpen}
         word={selectedWord}
         sentence={selectedSentence}
         onClose={handleCloseSheet}
         onSaveWord={async (data) => {
-          // Zapis słowa do lokalnego SQLite (0ms) + kolejka zbiorczego syncu do Supabase
+          if (!currentUserId) return;
+          const cardId = Crypto.randomUUID();
           await LocalFlashcardsRepository.insertCard({
-            id: `${data.video_id}_${Date.now()}`,
+            id: cardId,
             user_id: currentUserId,
             ...data,
             type: 'word',
@@ -471,9 +480,10 @@ export default function PlayerScreen() {
           FlashcardSyncEngine.scheduleSync(currentUserId);
         }}
         onSaveSentence={async (data) => {
-          // Zapis całego zdania do lokalnego SQLite (0ms) + kolejka zbiorczego syncu do Supabase
+          if (!currentUserId) return;
+          const cardId = Crypto.randomUUID();
           await LocalFlashcardsRepository.insertCard({
-            id: `${data.video_id}_sent_${Date.now()}`,
+            id: cardId,
             user_id: currentUserId,
             ...data,
             type: 'sentence',
@@ -496,20 +506,20 @@ export default function PlayerScreen() {
 
 Ekran powtórek fiszek ze stosem kart w 4 kierunkach gestu, obrotem 3D oraz obsługą pustego stanu (wszystkie ikony z `phosphor-react-native`: domyślnie szare `weight="regular"`, po kliknięciu/aktywacji `weight="fill"` z kolorem).
 
-### 3.1 Pasek Stanu & Kontrolki Dokujące:
+### 3.1 Pasek Stanu & Kontrolki Dokujące (100% English UI):
 - **Góra ekranu:**
-  - Ikona `Fire` (`phosphor-react-native`: szara `#94A3B8` `weight="regular"`, po kliknięciu/aktywnym streaku `weight="fill"` `#F59E0B`): `7 dni z rzędu`.
-  - Licznik postępu: `Karta 4 z 18`.
+  - Ikona `Fire` (`phosphor-react-native`: szara `#94A3B8` `weight="regular"`, po kliknięciu/aktywnym streaku `weight="fill"` `#F59E0B`): `7 day streak`.
+  - Licznik postępu: `Card 4 of 18`.
   - Pasek postępu (Progress Bar) z animowanym kolorem indygo.
 - **Środek:**
   - Kontener stosu kart `TinderCard` (wyświetla Karta 0, Karta 1 pod spodem i Karta 2).
 - **Dół ekranu (Manual Dock Buttons z ikonami `phosphor-react-native`):**
   - Dla użytkowników, którzy wolą klikać zamiast swipować (każdy przycisk ma szarą ikonę `weight="regular"`, która po kliknięciu przechodzi w `weight="fill"` w swoim kolorze):
-    - `ArrowLeft` `[ Powtórz ]` (Left — `#EF4444`)
-    - `ArrowDown` `[ Trudne ]` (Down — `#F59E0B`)
-    - `ArrowRight` `[ Dobrze ]` (Right — `#10B981`)
-    - `ArrowUp` `[ Łatwe ]` (Up — `#38BDF8`)
-    - `ArrowUUpLeft` `[ Cofnij ]` (`undoLastSwipe()`)
+    - `ArrowLeft` `[ Again ]` (Left — `#EF4444`)
+    - `ArrowDown` `[ Hard ]` (Down — `#F59E0B`)
+    - `ArrowRight` `[ Good ]` (Right — `#10B981`)
+    - `ArrowUp` `[ Easy ]` (Up — `#38BDF8`)
+    - `ArrowUUpLeft` `[ Undo ]` (`undoLastSwipe()`)
 
 ### 3.2 Ekran Ukończenia Sesji (Completed / Empty State):
 Gdy `currentIndex >= deck.length` lub gdy nie ma fiszek do powtórki:
@@ -519,77 +529,76 @@ Gdy `currentIndex >= deck.length` lub gdy nie ma fiszek do powtórki:
     <Trophy size={48} color="#10B981" weight="fill" />
   </View>
   <Text className="text-2xl font-bold text-white text-center mb-2">
-    Wszystkie powtórki ukończone!
+    All reviews completed!
   </Text>
   <Text className="text-slate-400 text-sm text-center mb-8 leading-relaxed">
-    Świetna robota. Twoja pamięć długotrwała utrwaliła te słówka. Obejrzyj kolejny film, aby dodać nowe zwroty do talii.
+    Great job. Your long-term memory has retained these words. Watch another video to add new phrases to your deck.
   </Text>
   <Pressable
     onPress={() => router.push('/(tabs)')}
     className="w-full py-4 rounded-xl bg-indigo-600 active:bg-indigo-700 items-center shadow-lg shadow-indigo-600/30"
   >
-    <Text className="text-white font-bold text-base">Odkrywaj Nowe Filmy</Text>
+    <Text className="text-white font-bold text-base">Explore New Videos</Text>
   </Pressable>
 </View>
 ```
 
 ---
 
-## 4. Ekran 4: Profil i Ustawienia (`apps/mobile/app/(tabs)/profile.tsx`)
+## 4. Screen 4: Profile & Settings (`apps/mobile/app/(tabs)/profile.tsx`)
 
-Zarządzanie kontem, poziomem CEFR, językiem ojczystym i subskrypcją Stripe (wszystkie ikony z `phosphor-react-native` — domyślnie szare `#94A3B8` `weight="regular"`, po kliknięciu `weight="fill"` z kolorem).
+Manages user account, learning statistics, RevenueCat subscriptions, and account deletion.
 
-### 4.1 Struktura Sekcji:
-1. **Nagłówek Użytkownika:**
-   - Awatar (inicjały lub zdjęcie Google/Apple).
-   - Email użytkownika.
-   - Pigułka poziomu: `B2 Intermediate`.
-2. **Kafle Statystyk Nauki (3 Kolumny z ikonami `phosphor-react-native`):**
-   - `BookOpen` **142** poznanych słówek.
-   - `Fire` **7 dni** ciągłego streaku.
-   - `Clock` **4.2h** spędzonych na nauce.
-3. **Karta Statusu Subskrypcji:**
-   - Jeśli plan darmowy:
-     - Wyświetla: *„Plan: Free (Zostało 15/50 darmowych zapytań)”*.
-     - Przycisk CTA: *„Wypróbuj Pro przez 3 dni za darmo”* -> otwiera `/(modals)/paywall`.
-   - Jeśli plan Starter / Pro / Master:
-     - Wyświetla: *„Plan: Pro (Odnawia się 15.11.2026)”*.
-     - Przycisk: *„Zarządzaj subskrypcją”* -> wywołuje Stripe Customer Portal.
-4. **Preferencje i Ustawienia:**
-   - Wybór języka ojczystego (Modal: Polski, Español, Deutsch, Français, Italiano, 日本語).
-   - Domyślny akcent wymowy (`en-US` / `en-GB`).
-   - Włącznik (Switch): *„Auto-wznawiaj wideo po zamknięciu tłumaczenia”*.
-   - Przycisk *„Wyloguj się”* (`supabase.auth.signOut()`).
-
----
-
-## 5. Ekran 5: Modal Paywalla (`apps/mobile/app/(modals)/paywall.tsx`)
-
-Prezentowany jako modal wznoszący (`presentation: 'modal'`) z ikoną `Crown` (`phosphor-react-native`).
-
-### 5.1 Elementy Widoku:
-1. **Nagłówek Hero:**
-   - Tytuł: *„Ucz się angielskiego z YouTube bez żadnych limitów”*.
-   - Wyróżnik: *„3 DNI ZA DARMO — Anuluj w dowolnym momencie w 1 kliknięcie”*.
-2. **Karty Wyboru 3 Planów:**
-   - **Starter ($4.99 / 19.99 PLN):** Podstawowy dostęp, 200 zapytań AI/miesiąc.
-   - **Pro ($8.99 / 39.99 PLN) [BESTSELLER]:** Nieograniczone zapytania AI, wyjaśnianie slangu i idiomów, pełny tryb offline fiszek.
-   - **Master ($16.99 / 69.99 PLN):** Wszystko z Pro + nielimitowane eksporty do Anki, priorytetowe serwery Gemini.
-3. **Wykrywanie Lokalizacji i Waluty:**
-   - W Polsce: Wyświetla kwoty w PLN z widoczną ikoną **BLIK**.
-   - W Strefie Euro: Kwoty w EUR z SEPA / Apple Pay.
-   - Domyślnie na świecie: Kwoty w USD.
-4. **Przycisk CTA:**
-   - *„Rozpocznij 3-dniowy darmowy okres próbny”*.
-   - Podpięty pod wywołanie Stripe PaymentSheet lub Stripe Checkout Session.
+### 4.1 Section Structure:
+1. **User Header:**
+   - Avatar (initials or Google/Apple image).
+   - User email.
+   - CEFR Level pill: `B1 Intermediate`.
+2. **Learning Statistics Cards (3 Columns with Phosphor icons):**
+   - `BookOpen` **142** Learned Words.
+   - `Fire` **7 Days** Current Streak.
+   - `Clock` **4.2 hrs** Study Time.
+3. **Subscription Status Card:**
+   - Free Plan:
+     - Displays: *"Plan: Free (15/30 daily AI requests remaining)"*.
+     - Button: *"Upgrade to Pro (3 Days Free)"* -> opens `/(modals)/paywall`.
+   - Paid Plans (Pro / Master):
+     - Displays: *"Plan: Pro (Active)"*.
+     - Button: *"Manage Subscription"* (opens App Store / Google Play subscription management).
+   - Button: *"Restore Purchases"* (calls `restoreUserPurchases()`).
+4. **Preferences & Danger Zone:**
+   - Toggle (Switch): *"Auto-resume video after closing translation"*.
+   - Accent preference: `en-US` / `en-GB`.
+   - Button: *"Sign Out"* (`supabase.auth.signOut()`).
+   - Button: *"Delete Account"* (destructive styling; confirms with native Alert and calls `deleteUserAccount()`).
 
 ---
 
-## 6. Ekran 6: Logowanie Społecznościowe (`apps/mobile/app/(auth)/login.tsx`)
+## 5. Screen 5: Paywall Modal (`apps/mobile/app/(modals)/paywall.tsx`)
 
-Aplikacja całkowicie eliminuje tradycyjne logowanie hasłem/e-mailem. Dostępne są wyłącznie natywne, bezpieczne przyciski **Sign in with Apple** i **Sign in with Google**.
+Presented as a modal (`presentation: 'modal'`) with native In-App Purchases via RevenueCat.
 
-### 6.1 Implementacja Ekranu Logowania:
+### 5.1 View Elements:
+1. **Hero Header:**
+   - Title: *"Learn English from YouTube with Zero Limits"*.
+   - Badge: *"3 DAYS FREE TRIAL — Cancel anytime in 1 tap"*.
+2. **Tier Selection Cards:**
+   - **Pro ($8.99 / mo) [RECOMMENDED]:** Unlimited AI lookups, deep context explanations (idioms, slang), audio speed controls, full offline SRS.
+   - **Master ($16.99 / mo):** All Pro features + Anki/CSV export.
+3. **CTA Button:**
+   - *"Start 3-Day Free Trial"*.
+   - Calls `purchasePackage(selectedPackage)` from `lib/purchases.ts`.
+4. **Footer:**
+   - *"Restore Purchases"* text button.
+   - Legal links: Terms of Service & Privacy Policy.
+
+---
+
+## 6. Screen 6: Social Authentication (`apps/mobile/app/(auth)/login.tsx`)
+
+The app offers frictionless 1-tap social sign-in with **Sign in with Apple** and **Sign in with Google** (zero email/password forms).
+
+### 6.1 Login Screen Implementation:
 ```typescript
 import React from 'react';
 import { View, Text, Pressable, Platform } from 'react-native';
@@ -648,11 +657,11 @@ export default function LoginScreen() {
           LearnEng
         </Text>
         <Text className="text-slate-400 text-center text-sm px-6 leading-relaxed">
-          Ucz się angielskiego z autentycznych filmów na YouTube z natychmiastowym tłumaczeniem AI i fiszkami SRS.
+          Learn English from authentic YouTube videos with instant AI translations and spaced repetition flashcards.
         </Text>
       </View>
 
-      {/* 2. Dwa Przyciski Social Sign-In: Apple & Google */}
+      {/* 2. Social Sign-In Buttons: Apple & Google */}
       <View className="w-full space-y-3">
         {Platform.OS === 'ios' && (
           <AppleAuthentication.AppleAuthenticationButton
@@ -668,15 +677,14 @@ export default function LoginScreen() {
           onPress={handleGoogleLogin}
           className="w-full h-[52px] bg-white rounded-2xl flex-row items-center justify-center space-x-3 active:opacity-90 shadow-lg mt-3"
         >
-          <Text className="text-slate-900 font-semibold text-base">Kontynuuj z Google</Text>
+          <Text className="text-slate-900 font-semibold text-base">Continue with Google</Text>
         </Pressable>
 
         <Text className="text-slate-500 text-[11px] text-center mt-4 px-4 leading-normal">
-          Logowanie jednym kliknięciem. Zero haseł. Kontynuując, akceptujesz nasz Regulamin i Politykę Prywatności.
+          One-tap sign in. No passwords. By continuing, you agree to our Terms of Service and Privacy Policy.
         </Text>
       </View>
     </View>
   );
 }
-```
 

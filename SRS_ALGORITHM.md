@@ -8,12 +8,12 @@ This document describes the exact spaced repetition algorithm used for schedulin
 
 The algorithm computes when a card should next be reviewed based on the user's gesture swipe direction:
 
-| Tinder Swipe Gesture | Visual Badge & Color | SM-2 Grade ($q$) | Description |
+| Tinder Swipe Gesture | Visual Badge & Color | SM-2 Grade ($q$) | Description & Progression |
 | :--- | :--- | :--- | :--- |
-| ⬅️ **SWIPE W LEWO** | 🔴 **POWTÓRZ (Again)** | `Grade 0` | Zapomniane; powrót do kolejki dzisiejszej sesji, reset powtórzeń |
-| ⬇️ **SWIPE W DÓŁ** | 🟠 **TRUDNE (Hard)** | `Grade 1` | Przypomniane z trudem; krótki interwał (1-2 dni), spadek współczynnika łatwości |
-| ➡️ **SWIPE W PRAWO** | 🟢 **DOBRZE (Good)** | `Grade 2` | Przypomniane sprawnie; standardowy progres (3-4 dni) |
-| ⬆️ **SWIPE W GÓRĘ** | 🔵 **ŁATWE (Easy)** | `Grade 3` | Natychmiastowe i bez wysiłku; długi interwał (6-7 dni), wzrost łatwości |
+| ⬅️ **SWIPE LEFT** | 🔴 **AGAIN** | `Grade 0` | Forgotten; reset repetitions (`n = 0`), interval = 1 day, card returns to end of queue |
+| ⬇️ **SWIPE DOWN** | 🟠 **HARD** | `Grade 1` | Recalled with hesitation; short interval (1–2 days), ease factor drops ($\Delta EF = -0.14$) |
+| ➡️ **SWIPE RIGHT** | 🟢 **GOOD** | `Grade 2` | Recalled well; standard interval progression ($1 \rightarrow 3 \rightarrow 8\text{ days}$), ease factor maintained |
+| ⬆️ **SWIPE UP** | 🔵 **EASY** | `Grade 3` | Instant & effortless recall; accelerated progression ($2 \rightarrow 6 \rightarrow 18\text{ days}$), ease factor rises ($\Delta EF = +0.10$) |
 
 ---
 

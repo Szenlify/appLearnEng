@@ -10,7 +10,7 @@ You are an expert full-stack developer working on the **LearnEng** cross-platfor
    - Translations are served directly from Cloudflare R2 (`/{hash}.json`), not PostgreSQL.
    - Batch/debounce flashcard Tinder swipe updates to PostgreSQL (`expo-sqlite` local store).
    - Connect via Supabase Transaction Pooler (port 6543).
-5. **State & Architecture:** Follow `STATE_MANAGEMENT.md`, `MOBILE_SCREENS_SPEC.md`, `OFFLINE_SQLITE_AND_SYNC.md`, `MOBILE_BOOTSTRAP_AND_CONFIG.md`, and `COMPONENT_SPECS.md`.
+5. **State & Architecture:** Follow `STATE_MANAGEMENT.md`, `MOBILE_SCREENS_SPEC.md`, `DATA_FLOW_GLUE.md`, `OFFLINE_SQLITE_AND_SYNC.md`, `MOBILE_BOOTSTRAP_AND_CONFIG.md`, and `COMPONENT_SPECS.md`.
 6. **Edge Cases & Errors:** Follow `EDGE_CASES_AND_ERRORS.md` (no captions fallback, debouncing, offline handling).
 7. **Edge Cache First:** Mobile app always tries `GET ${PUBLIC_R2_URL}/${hash}.json` before hitting backend translation endpoints.
 8. **No API keys in client code:** All AI generation and R2 uploads happen on the backend service.

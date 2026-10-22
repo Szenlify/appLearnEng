@@ -85,3 +85,21 @@ Aby baza danych nie stała się wąskim gardłem kosztowym, wdrażamy 6 kluczowy
 
 ### 🛡️ 6. Liczniki Zapytań AI w Pamięci Podręcznej / Nagłówkach
 - Resetowanie dziennego limitu darmowych zapytań (`daily_ai_requests_count`) nie wymaga zapytania do bazy przy każdym kliknięciu słowa, ponieważ baza odpytywana jest wyłącznie przy błędzie 404 z Cloudflare R2 (czyli tylko przy zupełnie nowych słowach).
+
+---
+
+## 4. Wybór Najbardziej Opłacalnego Stosu (Dlaczego Hono + Supabase + R2 + RevenueCat?)
+
+W odpowiedzi na pytanie o opłacalność poszczególnych komponentów (Supabase, Hono, R2, RevenueCat), poniższe zestawienie wyjaśnia, dlaczego **żaden z tych elementów nie jest przypadkowy** i jak tworzą one architekturę o **zerowych kosztach stałych (0 USD na start)**:
+
+| Komponent | Do czego służy | Alternatywa | Dlaczego obecny wybór jest NAJBARDZIEJ OPŁACALNY? | Koszt początkowy |
+|---|---|---|---|---|
+| **Hono (Bun)** na Fly.io / Render | API backendowe (scraper napisów, fallback Gemini, quota guard, webhooki RevenueCat) | NestJS / Express na VPS, AWS Lambda | Hono waży < 15 KB, uruchamia się w < 10 ms i zużywa zaledwie 25–40 MB RAM na Bun. Działa na darmowych tierach Fly.io (3 współdzielone maszyny) lub Render. Przy 10 000 req/s zużywa ułamek zasobów Node.js. | **$0.00 / mc** |
+| **Supabase (PostgreSQL + Auth)** | Relacyjna baza danych, profile, fiszki SRS, sesje użytkowników (Apple / Google OAuth) | Własny PostgreSQL na VPS + Auth0 / Clerk | Supabase Free Tier daje **500 MB bazy, 50 000 MAU autoryzacji** i wbudowany Transaction Pooler (PgBouncer). Własny VPS kosztowałby $5–15/mc + wymagałby konfiguracji certyfikatów SSL, backupów i ręcznego pisania obsługi Apple/Google OAuth. | **$0.00 / mc** |
+| **Cloudflare R2** | Publiczny CDN i magazyn statycznych JSON-ów tłumaczeń (`/{hash}.json`) | AWS S3, Google Cloud Storage, baza PostgreSQL | AWS S3 pobiera drakońskie opłaty za transfer wychodzący (egress). Cloudflare R2 ma **Zero Egress Fees** (0 USD za transfer), 10 GB darmowego storage'u i 10 mln darmowych odczytów. Przenosi 90%+ ruchu poza backend i bazę. | **$0.00 / mc** |
+| **RevenueCat** | Obsługa subskrypcji In-App Purchases (iOS StoreKit 2 + Android Google Play Billing) | Własny serwer walidacji paragonów, Stripe w webview | **100% darmowy do $2,500 miesięcznego obrotu (MTR)**. Stripe w aplikacji mobilnej grozi natychmiastowym odrzuceniem przez Apple (Guideline 3.1.1). Samodzielna integracja StoreKit 2 i Google Play Billing to tygodnie pisania kodu walidacji, grace periods i odnowień. RevenueCat daje to gotowe za 0 USD. | **$0.00 / mc** |
+| **`expo-speech`** | Natywna synteza wymowy słów i zdań na telefonie | ElevenLabs, Google Cloud Text-to-Speech API | Działa lokalnie na procesorze telefonu użytkownika (iOS AVSpeechSynthesizer / Android TTS). 0 ms opóźnienia, działa offline, zero opłat za API głosowe (ElevenLabs kosztowałoby min. $22–$99/mc). | **$0.00 / mc** |
+| **Google Gemini 2.5 Lite** | Kontekstowe tłumaczenia i definicje przy braku cache w R2 | GPT-4o, Claude 3.5 Sonnet | Błyskawiczny czas odpowiedzi (TTFT < 300 ms), Structured Outputs (wymuszony JSON) i cena zaledwie ~$0.00007 za tłumaczenie (ułamek grosza). | **Płatne groszowo tylko za zapytania spoza cache** |
+
+### Podsumowanie finansowe:
+Dzięki takiemu połączeniu, aplikacja może obsłużyć pierwszych **5 000 – 10 000 użytkowników przy łącznym koszcie serwerowym rzędu 0–5 USD miesięcznie** (płacąc wyłącznie za sporadyczne tokeny Gemini przy unikalnych słowach). Baza PostgreSQL nie jest obciążana zapytaniami o słówka, a backend Hono działa na darmowym kontenerze.

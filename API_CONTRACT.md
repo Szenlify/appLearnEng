@@ -17,10 +17,13 @@ import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils';
  * while preserving internal apostrophes ("don't") and phrase spaces ("put up with").
  */
 export function cleanWordToken(rawToken: string): string {
-  return rawToken.trim().replace(/^[^\w']+|[^\w']+$/g, '');
+  return rawToken
+    .replace(/[‘’]/g, "'")
+    .trim()
+    .replace(/^[^\w']+|[^\w']+$/g, '');
 }
 
-export function computeTranslationHash(word: string, sentence: string, targetLang = 'pl'): string {
+export function computeTranslationHash(word: string, sentence: string, targetLang = 'en'): string {
   const normalizedWord = cleanWordToken(word).toLowerCase();
   const normalizedSentence = sentence.trim().toLowerCase();
   const normalizedLang = targetLang.trim().toLowerCase();
@@ -174,15 +177,32 @@ export interface CreateFlashcardRequestBody {
 
 ---
 
-## 5. Stripe Billing Contract (Multi-Currency & Localized Payments)
+## 5. RevenueCat In-App Purchases Contract & Entitlements
 
-### 5.1 Pricing Matrix (Default: USD)
-- **USD (Default Global):** Starter \$4.99/mo, Pro \$8.99/mo, Master \$16.99/mo. Methods: `['card', 'link', 'apple_pay', 'google_pay']`.
-- **EUR (Strefa Euro):** Starter 4.99 €, Pro 8.99 €, Master 15.99 €. Methods: `['card', 'sepa_debit', 'ideal', 'bancontact']`.
-- **PLN (Polska):** Starter 19.99 PLN, Pro 39.99 PLN, Master 69.99 PLN. Methods: `['card', 'blik', 'p24']`.
-- **JPY (Japonia):** Starter ¥750, Pro ¥1,400, Master ¥2,500. Methods: `['card', 'konbini']`.
+### 5.1 Entitlements & Tiers
+- **Entitlement: `pro_access`:** Unlocked by `Pro` ($8.99/mo) and `Master` ($16.99/mo). Unlocks unlimited flashcards, offline mode, and unlimited AI translations.
+- **Entitlement: `master_access`:** Unlocked by `Master` ($16.99/mo). Unlocks Anki export and VIP features.
 
-All tiers have `trial_period_days: 3`.
+All tiers include `trial_period_days: 3`.
+
+### 5.2 RevenueCat Webhook Event Schema (`POST /api/v1/revenuecat/webhook`)
+```typescript
+export interface RevenueCatWebhookBody {
+  api_version: string;
+  event: {
+    id: string;
+    type: 'INITIAL_PURCHASE' | 'RENEWAL' | 'CANCELLATION' | 'EXPIRATION' | 'PRODUCT_CHANGE';
+    app_user_id: string; // Supabase user UUID
+    original_app_user_id: string;
+    product_id: string;
+    period_type: 'TRIAL' | 'NORMAL' | 'INTRO';
+    purchased_at_ms: number;
+    expiration_at_ms: number | null;
+    entitlement_ids: string[];
+    store: 'APP_STORE' | 'PLAY_STORE' | 'PROMOTIONAL';
+  };
+}
+```
 
 ---
 
@@ -215,7 +235,7 @@ export const TranslationResponseSchema = z.object({
 export const TranslateRequestBodySchema = z.object({
   word: z.string().trim().min(1, 'Word is required'),
   sentence: z.string().trim().min(1, 'Context sentence is required'),
-  targetLang: z.string().trim().min(2).default('pl'),
+  targetLang: z.string().trim().min(2).default('en'),
   videoId: z.string().optional(),
   userId: z.string().optional(),
 });

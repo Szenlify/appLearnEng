@@ -21,10 +21,10 @@ Nowoczesna aplikacja mobilna cross-platform (iOS i Android) oraz ekosystem SaaS 
    - Stos kart 3D: Lewo (Powtórz), Dół (Trudne), Prawo (Dobrze), Góra (Łatwe) + obrót 3D na tapnięcie.
 6. **Autentykacja i Baza Danych:**
    - Supabase Auth (Sign in with Apple, Google) + PostgreSQL na Supabase z pełnym Row Level Security (RLS). Zero haseł i formularzy email.
-7. **Monetyzacja przez Stripe (Domyślnie USD z lokalizacją walut):**
-   - 3 plany miesięczne: **Starter ($4.99)**, **Pro ($8.99)**, **Master ($16.99)**.
+7. **Monetyzacja przez RevenueCat (Natywne In-App Purchases na iOS & Android):**
+   - 2 plany miesięczne: **Pro ($8.99)**, **Master ($16.99)**.
    - Każdy plan posiada **3-dniowy darmowy okres próbny (3-Day Free Trial)**.
-   - Dynamiczna lokalizacja: PLN z BLIK-iem w Polsce, EUR w Europie.
+   - Pełna zgodność z Apple App Store & Google Play (brak ryzyka odrzucenia płatności zewnętrznych).
 
 ---
 
@@ -39,9 +39,11 @@ Projekt jest w 100% przygotowany pod asystentów AI i szybkie programowanie bez 
 * **[EDGE_CASES_AND_ERRORS.md](./EDGE_CASES_AND_ERRORS.md)** – Obsługa braku napisów, błędnych linków YT, debouncing klikania i tryb offline.
 * **[COMPONENT_SPECS.md](./COMPONENT_SPECS.md)** – Dokładna specyfikacja propsów, styli i animacji komponentów UI.
 * **[MOBILE_SCREENS_SPEC.md](./MOBILE_SCREENS_SPEC.md)** – Pełna specyfikacja widoków i logiki ekranów Expo Router (Explore, Player, Flashcards, Profile, Paywall).
-* **[OFFLINE_SQLITE_AND_SYNC.md](./OFFLINE_SQLITE_AND_SYNC.md)** – Baza lokalna SQLite (nowe API Expo SDK 51) i silnik zbiorczej synchronizacji (Batch Sync).
+* **[DATA_FLOW_GLUE.md](./DATA_FLOW_GLUE.md)** – Przepływ danych w runtime: mapowanie TranslationSheet -> LocalFlashcardsRepository -> FlashcardSyncEngine -> Supabase.
+* **[OFFLINE_SQLITE_AND_SYNC.md](./OFFLINE_SQLITE_AND_SYNC.md)** – Baza lokalna SQLite (nowe API Expo SDK 51+) i silnik zbiorczej synchronizacji (Batch Sync).
 * **[MOBILE_BOOTSTRAP_AND_CONFIG.md](./MOBILE_BOOTSTRAP_AND_CONFIG.md)** – Konfiguracja monorepo, NativeWind v4, Metro, Babel oraz poprawka dźwięku iOS.
 * **[DEPLOYMENT_AND_EAS.md](./DEPLOYMENT_AND_EAS.md)** – Konfiguracja `app.json` oraz `eas.json` do publikacji w App Store i Google Play.
+* **[INFRA_SETUP_CHECKLIST.md](./INFRA_SETUP_CHECKLIST.md)** – Krok po kroku konfiguracja Supabase, Cloudflare R2, RevenueCat, Gemini i Fly.io.
 * **[AUTH_AND_SECURITY.md](./AUTH_AND_SECURITY.md)** – Implementacja logowania Apple i Google (Social Sign-In) oraz bezpiecznego magazynu tokenów (SecureStore).
 * **[NAVIGATION_MAP.md](./NAVIGATION_MAP.md)** – Struktura ekranów Expo Router, szklany pasek nawigacji (Frosted Glass TabBar) i modale.
 * **[DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md)** – Tokeny kolorów (Dark OLED), typografia, zachowanie odtwarzacza i stosu fiszek a'la Tinder.
@@ -58,5 +60,5 @@ Projekt jest w 100% przygotowany pod asystentów AI i szybkie programowanie bez 
 1. **[01_ARCHITECTURE.md](./01_ARCHITECTURE.md)** – Zablokowana architektura systemu, stack React Native Expo + Bun Hono, Cloudflare R2 i Supabase.
 2. **[02_YOUTUBE_INTEGRATION.md](./02_YOUTUBE_INTEGRATION.md)** – Odtwarzacz `react-native-youtube-iframe`, transkrypcje i synchronizacja czasu z napisami.
 3. **[03_AI_AND_PROMPTS.md](./03_AI_AND_PROMPTS.md)** – Integracja z Gemini 2.5 Lite, algorytm haszowania słów i zdań oraz bezkosztowy cache w Cloudflare R2.
-4. **[04_SAAS_BUSINESS_MODEL.md](./04_SAAS_BUSINESS_MODEL.md)** – Model biznesowy SaaS, 3 plany subskrypcyjne (USD / EUR / PLN), Stripe z BLIK i ekonomia jednostkowa (>90% marży).
+4. **[04_SAAS_BUSINESS_MODEL.md](./04_SAAS_BUSINESS_MODEL.md)** – Model biznesowy SaaS, 2 płatne plany subskrypcyjne (Pro $8.99/mo, Master $16.99/mo z 3-dniowym trialem) + plan Free, RevenueCat In-App Purchases (iOS StoreKit 2 & Android Google Play Billing) i ekonomia jednostkowa (>90% marży).
 5. **[05_ROADMAP_AND_MVP.md](./05_ROADMAP_AND_MVP.md)** – Zakres MVP krok po kroku i plan sprintów wdrożeniowych.

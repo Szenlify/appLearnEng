@@ -28,9 +28,13 @@ export interface RawCue {
 }
 
 export function tokenizeSentence(sentence: string): string[] {
-  // Matches words with apostrophes (e.g. "don't", "we're") or standalone words
-  const tokenRegex = /[\w']+[.,!?;:"()\-]*|[.,!?;:"()\-]/g;
-  return (sentence.match(tokenRegex) || sentence.split(/\s+/)).filter(Boolean);
+  // Normalize typographic apostrophes to standard single quote
+  const normalized = sentence.replace(/[‘’]/g, "'");
+  // Split into whitespace chunks and ensure tokens contain at least one alphanumeric character
+  return normalized
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => /[a-zA-Z0-9]/.test(t));
 }
 
 export class YouTubeCaptionsService {
@@ -137,12 +141,15 @@ export class YouTubeCaptionsService {
 
 ## 3. Tokenization Logic (Client & Server)
 
-To enable word-by-word tapping, each sentence cue is tokenized cleanly while preserving apostrophes (e.g. `"don't"`, `"can't"`):
+To enable word-by-word tapping, each sentence cue is tokenized cleanly by normalizing typographic apostrophes (`‘`, `’` $\rightarrow$ `'`), splitting on whitespace, and filtering tokens that contain at least one alphanumeric character (preserving apostrophes in contractions like `"don't"`, `"can't"`, while `cleanWordToken` from `@learneng/shared` strips surrounding punctuation on tap):
 
 ```typescript
 export function tokenizeSentence(sentence: string): string[] {
-  const tokenRegex = /[\w']+[.,!?;:"()\-]*|[.,!?;:"()\-]/g;
-  return (sentence.match(tokenRegex) || sentence.split(/\s+/)).filter(Boolean);
+  const normalized = sentence.replace(/[‘’]/g, "'");
+  return normalized
+    .split(/\s+/)
+    .map((t) => t.trim())
+    .filter((t) => /[a-zA-Z0-9]/.test(t));
 }
 ```
 

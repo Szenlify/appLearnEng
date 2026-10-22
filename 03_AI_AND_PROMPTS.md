@@ -91,7 +91,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! });
 export async function generateContextualTranslation(
   word: string,
   sentence: string,
-  targetLang = 'pl'
+  targetLang = 'en'
 ) {
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash-lite',
@@ -198,13 +198,14 @@ export class R2StorageService {
 Aplikacja mobilna **zawsze** najpierw odpytuje bezpośrednio publiczny CDN Cloudflare R2 (`GET ${EXPO_PUBLIC_R2_URL}/${hash}.json`), a dopiero przy błędzie `404` uderza do `POST /api/v1/translate`. Parametr `fetchFn` pozwala na bezproblemowe mockowanie `fetch` w testach jednostkowych Etapu 7 (`r2-cache.test.ts`):
 
 ```typescript
-import { computeTranslationHash, TranslationResponse } from '@learneng/shared';
+import { cleanWordToken, computeTranslationHash, TranslationResponse } from '@learneng/shared';
 
 export interface FetchTranslationParams {
   word: string;
   sentence: string;
   targetLang?: string;
   videoId?: string;
+  authToken?: string;
   r2BaseUrl?: string;
   apiBaseUrl?: string;
   fetchFn?: typeof fetch;
@@ -213,13 +214,15 @@ export interface FetchTranslationParams {
 export async function fetchTranslationWithR2Cache({
   word,
   sentence,
-  targetLang = 'pl',
+  targetLang = 'en',
   videoId,
+  authToken,
   r2BaseUrl = process.env.EXPO_PUBLIC_R2_URL || 'https://cache.applearneng.com',
   apiBaseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000',
   fetchFn = fetch,
 }: FetchTranslationParams): Promise<{ data: TranslationResponse; fromCache: boolean }> {
-  const hash = computeTranslationHash(word, sentence, targetLang);
+  const cleaned = cleanWordToken(word);
+  const hash = computeTranslationHash(cleaned, sentence, targetLang);
   const r2Url = `${r2BaseUrl.replace(/\/$/, '')}/${hash}.json`;
 
   // 1. KROK A: Bezpośredni GET do publicznego bucketu Cloudflare R2
@@ -233,11 +236,16 @@ export async function fetchTranslationWithR2Cache({
     return { data: cachedData, fromCache: true };
   }
 
-  // 2. KROK B (Fallback przy HTTP 404): Wywołanie backendu POST /api/v1/translate
+  // 2. KROK B (Fallback przy HTTP 404): Wywołanie backendu POST /api/v1/translate z JWT
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (authToken) {
+    headers['Authorization'] = `Bearer ${authToken}`;
+  }
+
   const fallbackResponse = await fetchFn(`${apiBaseUrl.replace(/\/$/, '')}/api/v1/translate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ word, sentence, targetLang, videoId }),
+    headers,
+    body: JSON.stringify({ word: cleaned, sentence, targetLang, videoId }),
   });
 
   if (!fallbackResponse.ok) {
