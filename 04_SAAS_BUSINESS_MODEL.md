@@ -42,20 +42,119 @@ Stripe PaymentSheet / Checkout automatycznie dobiera metody płatności na podst
 - **iDEAL** (Holandia), **Bancontact** (Belgia), **Sofort / Giropay** (Niemcy).
 - Karty oraz Apple/Google Pay.
 
-### 3.4 Konfiguracja Sesji Checkout w Stripe:
+### 3.4 Konfiguracja Sesji Checkout i Webhooków Stripe w Hono (`apps/backend/src/routes/stripe.routes.ts`):
+
+> [!IMPORTANT]
+> W środowisku **Bun** weryfikacja podpisu webhooka Stripe **musi** używać asynchronicznej metody `await stripe.webhooks.constructEventAsync(rawBody, sig, secret)` (synchroniczne `constructEvent` powoduje błąd SubtleCrypto w Bunie).
+
 ```typescript
-const session = await stripe.checkout.sessions.create({
-  customer: stripeCustomerId,
-  mode: 'subscription',
-  currency: userCurrency || 'usd', // domyślnie zawsze USD
-  payment_method_types: ['card', 'link', 'blik', 'sepa_debit'],
-  subscription_data: {
-    trial_period_days: 3,
-  },
-  line_items: [{ price: localizedPriceId, quantity: 1 }],
-  success_url: `${APP_URL}/subscription/success`,
-  cancel_url: `${APP_URL}/subscription/cancel`,
+import Stripe from 'stripe';
+import { Hono } from 'hono';
+import { createClient } from '@supabase/supabase-js';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-06-20',
 });
+
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export type PlanTier = 'starter' | 'pro' | 'master';
+export type SupportedCurrency = 'USD' | 'EUR' | 'PLN' | 'JPY';
+
+export function getPaymentMethodsForCurrency(currency: SupportedCurrency): Stripe.Checkout.SessionCreateParams.PaymentMethodType[] {
+  switch (currency.toUpperCase()) {
+    case 'PLN':
+      return ['card', 'blik', 'p24'];
+    case 'EUR':
+      return ['card', 'sepa_debit', 'ideal', 'bancontact'];
+    case 'JPY':
+      return ['card', 'konbini'];
+    default:
+      return ['card', 'link'];
+  }
+}
+
+export async function createSubscriptionCheckout(params: {
+  userId: string;
+  email: string;
+  tier: PlanTier;
+  currency?: SupportedCurrency;
+  priceId: string;
+  appUrl: string;
+}) {
+  const currency = (params.currency || 'USD').toLowerCase();
+  const paymentMethodTypes = getPaymentMethodsForCurrency((params.currency || 'USD') as SupportedCurrency);
+
+  return stripe.checkout.sessions.create({
+    customer_email: params.email,
+    client_reference_id: params.userId,
+    mode: 'subscription',
+    currency,
+    payment_method_types: paymentMethodTypes,
+    subscription_data: {
+      trial_period_days: 3, // 3-dniowy darmowy okres próbny dla każdego planu
+      metadata: {
+        userId: params.userId,
+        planTier: params.tier,
+      },
+    },
+     metadata: {
+      userId: params.userId,
+      planTier: params.tier,
+      currency: currency.toUpperCase(),
+    },
+    line_items: [{ price: params.priceId, quantity: 1 }],
+    success_url: `${params.appUrl}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${params.appUrl}/subscription/cancel`,
+  });
+}
+
+export async function handleStripeWebhook(rawBody: string, signature: string) {
+  const event = await stripe.webhooks.constructEventAsync(
+    rawBody,
+    signature,
+    process.env.STRIPE_WEBHOOK_SECRET!
+  );
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const userId = session.metadata?.userId || session.client_reference_id;
+    const planTier = session.metadata?.planTier || 'pro';
+    const currency = session.metadata?.currency || 'USD';
+
+    if (userId) {
+      await supabaseAdmin
+        .from('user_subscriptions')
+        .upsert(
+          {
+            user_id: userId,
+            stripe_customer_id: String(session.customer),
+            stripe_subscription_id: String(session.subscription),
+            plan_tier: planTier,
+            currency,
+            status: 'trialing',
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id' }
+        );
+    }
+  } else if (event.type === 'customer.subscription.deleted') {
+    const sub = event.data.object as Stripe.Subscription;
+    await supabaseAdmin
+      .from('user_subscriptions')
+      .update({
+        plan_tier: 'free',
+        status: 'canceled',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('stripe_subscription_id', sub.id);
+  }
+
+  return { received: true, type: event.type };
+}
 ```
 
 ---

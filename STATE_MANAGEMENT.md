@@ -99,6 +99,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     });
   },
 }));
+
+export const QUERY_KEYS = {
+  captions: (videoId: string) => ['captions', videoId] as const,
+  translation: (hash: string) => ['translation', hash] as const,
+  flashcardsDue: (userId: string) => ['flashcards', 'due', userId] as const,
+  userProfile: (userId: string) => ['profile', userId] as const,
+  userSubscription: (userId: string) => ['subscription', userId] as const,
+  watchHistory: (userId: string) => ['watch_history', userId] as const,
+};
 ```
 
 ---

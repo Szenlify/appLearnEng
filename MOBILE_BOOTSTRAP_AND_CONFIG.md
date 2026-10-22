@@ -62,7 +62,80 @@ Lokalizacja: `/turbo.json`
 
 ---
 
-## 3. Zależności Aplikacji Mobilnej (`apps/mobile/package.json`)
+## 2.5 Zależności Pakietu Współdzielonego (`packages/shared/package.json`) oraz Backendu (`apps/backend/package.json`)
+
+Lokalizacja: `packages/shared/package.json`
+```json
+{
+  "name": "@learneng/shared",
+  "version": "1.0.0",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@noble/hashes": "^1.4.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
+```
+
+Lokalizacja: `apps/backend/package.json`
+```json
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.600.0",
+    "@google/genai": "^2.3.0",
+    "@learneng/shared": "*",
+    "@supabase/supabase-js": "^2.45.0",
+    "fast-xml-parser": "^4.4.0",
+    "hono": "^4.4.0",
+    "stripe": "^16.2.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.4.5"
+  }
+}
+```
+
+---
+
+## 3. Zależności Aplikacji Mobilnej (`apps/mobile/package.json`) & `tsconfig.json`
+
+Lokalizacja: `apps/mobile/tsconfig.json`
+```json
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts",
+    "nativewind-env.d.ts"
+  ]
+}
+```
 
 Lokalizacja: `apps/mobile/package.json`
 
@@ -89,6 +162,7 @@ Lokalizacja: `apps/mobile/package.json`
     "expo-blur": "~13.0.2",
     "expo-clipboard": "~6.0.3",
     "expo-constants": "~16.0.2",
+    "expo-haptics": "~13.0.1",
     "expo-linking": "~6.3.1",
     "expo-router": "~3.5.23",
     "expo-secure-store": "~13.0.2",

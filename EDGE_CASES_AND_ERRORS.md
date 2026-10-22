@@ -77,16 +77,53 @@ Użytkownik chaotycznie klika kilka słów w ułamku sekundy, wywołując kaskad
 
 ---
 
-## 5. Wykorzystanie Dziennego Limitu Tłumaczeń (Dla Użytkowników Free)
+## 5. Wykorzystanie Dziennego Limitu Tłumaczeń (Quota Guard dla Użytkowników Free)
 
 ### Problem:
-Użytkownik bez aktywnej subskrypcji przekracza dzienny limit zapytań o nowe słowa do Gemini (np. 50 zapytań).
+Użytkownik bez aktywnej subskrypcji przekracza dzienny limit zapytań o nowe słowa do Gemini (50 nowych zapytań / 24h; słowa z cache R2 są zawsze darmowe i nielimitowane).
 
-### Obsługa:
-1. Backend przy próbie tłumaczenia nieznanego słowa (błąd 404 z R2) sprawdza licznik `daily_ai_requests_count`.
-2. Przy przekroczeniu limitu backend zwraca HTTP 429: `{ code: 'QUOTA_EXCEEDED', plan: 'free' }`.
-3. Aplikacja mobilna natychmiast otwiera modal **Paywalla (`app/(modals)/paywall.tsx`)** z komunikatem:
+### Obsługa i Implementacja w Backendzie (`apps/backend/src/services/quota.service.ts`):
+1. Backend przy próbie tłumaczenia nieznanego słowa (błąd 404 z R2) wywołuje `checkAndIncrementAiQuota(userId)`.
+2. Jeśli minęło 24h od `last_request_reset_at`, licznik `daily_ai_requests_count` jest automatycznie zerowany.
+3. Przy przekroczeniu limitu na planie `free` backend zwraca HTTP 429: `{ code: 'QUOTA_EXCEEDED', plan: 'free' }`.
+4. Aplikacja mobilna po otrzymaniu HTTP 429 natychmiast otwiera modal **Paywalla (`app/(modals)/paywall.tsx`)** z komunikatem:
    - *"Wykorzystałeś dzisiejszy darmowy limit tłumaczeń AI. Aktywuj 3 dni za darmo planu Pro, aby uczyć się bez ograniczeń!"*
+
+```typescript
+export const DAILY_FREE_AI_LIMIT = 50;
+
+export interface UserQuotaState {
+  planTier: 'free' | 'starter' | 'pro' | 'master';
+  status: 'inactive' | 'trialing' | 'active' | 'past_due' | 'canceled';
+  dailyAiRequestsCount: number;
+  lastRequestResetAt: string; // ISO 8601
+}
+
+export function evaluateQuota(state: UserQuotaState, now = new Date()): {
+  allowed: boolean;
+  newCount: number;
+  shouldResetTimestamp: boolean;
+} {
+  // Aktywna subskrypcja lub 3-dniowy trial -> brak dziennego limitu
+  if (state.planTier !== 'free' && (state.status === 'active' || state.status === 'trialing')) {
+    return { allowed: true, newCount: state.dailyAiRequestsCount + 1, shouldResetTimestamp: false };
+  }
+
+  const lastReset = new Date(state.lastRequestResetAt).getTime();
+  const hoursSinceReset = (now.getTime() - lastReset) / (1000 * 60 * 60);
+
+  // Automatyczny reset po 24 godzinach
+  if (hoursSinceReset >= 24) {
+    return { allowed: true, newCount: 1, shouldResetTimestamp: true };
+  }
+
+  if (state.dailyAiRequestsCount >= DAILY_FREE_AI_LIMIT) {
+    return { allowed: false, newCount: state.dailyAiRequestsCount, shouldResetTimestamp: false };
+  }
+
+  return { allowed: true, newCount: state.dailyAiRequestsCount + 1, shouldResetTimestamp: false };
+}
+```
 
 ---
 

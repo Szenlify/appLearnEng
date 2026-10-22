@@ -181,7 +181,7 @@ export const LocalFlashcardsRepository = {
         card.repetitions,
         card.interval_days,
         card.ease_factor,
-        card.nextReviewAt || card.next_review_at,
+        card.next_review_at,
         nowIso,
       ]
     );
@@ -210,17 +210,65 @@ export const LocalFlashcardsRepository = {
       cardIds
     );
   },
+
+  /**
+   * Zapisuje fiszki pobrane z chmury Supabase (np. po zalogowaniu na nowym telefonie),
+   * nie nadpisując kart, które mają lokalne, jeszcze niewysłane zmiany (sync_status != 'synced').
+   */
+  async upsertManyFromServer(cards: Omit<LocalFlashcardRow, 'sync_status'>[]): Promise<void> {
+    if (cards.length === 0) return;
+    const db = await getDb();
+    await db.withTransactionAsync(async () => {
+      for (const c of cards) {
+        await db.runAsync(
+          `INSERT INTO local_flashcards 
+           (id, user_id, type, target_text, translation, simple_definition, context_sentence, context_explanation, lemma, part_of_speech, ipa, cefr_level, r2_cache_hash, video_id, video_timestamp_sec, repetitions, interval_days, ease_factor, next_review_at, sync_status, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'synced', ?)
+           ON CONFLICT(id) DO UPDATE SET
+             repetitions = excluded.repetitions,
+             interval_days = excluded.interval_days,
+             ease_factor = excluded.ease_factor,
+             next_review_at = excluded.next_review_at,
+             updated_at = excluded.updated_at
+           WHERE local_flashcards.sync_status = 'synced'`,
+          [
+            c.id,
+            c.user_id,
+            c.type,
+            c.target_text,
+            c.translation,
+            c.simple_definition || null,
+            c.context_sentence || null,
+            c.context_explanation || null,
+            c.lemma || null,
+            c.part_of_speech || null,
+            c.ipa || null,
+            c.cefr_level || null,
+            c.r2_cache_hash || null,
+            c.video_id || null,
+            c.video_timestamp_sec || null,
+            c.repetitions,
+            c.interval_days,
+            c.ease_factor,
+            c.next_review_at,
+            c.updated_at || new Date().toISOString(),
+          ]
+        );
+      }
+    });
+  },
 };
 ```
 
 ---
 
-## 4. Silnik Synchronizacji Zbiorczej (`FlashcardSyncEngine.ts`)
+## 4. Silnik Synchronizacji Dwukierunkowej i Zbiorczej (`FlashcardSyncEngine.ts`)
 
-Silnik dba o to, aby rekordy z lokalnego SQLite spłynęły do bazy PostgreSQL na Supabase przy spełnieniu jednego z 3 warunków:
-1. **Debounce Timer:** 5 sekund bezruchu po ostatnim geście swipe.
-2. **Utrata fokusu ekranu / AppState:** Przejście aplikacji do tła (`AppState === 'background'`).
-3. **Powrót połączenia sieciowego:** Gdy urządzenie odzyska dostęp do sieci.
+Silnik dba o pełną synchronizację **Push & Pull** pomiędzy lokalnym `expo-sqlite` a chmurowym PostgreSQL na Supabase:
+1. **Pull przy starcie (`pullFromServer`):** Pobiera fiszki użytkownika z Supabase do lokalnego SQLite (np. po instalacji aplikacji na nowym telefonie).
+2. **Debounce Push (`scheduleSync`):** 5 sekund bezruchu po ostatnim geście swipe wysyła zbiorczy `upsert`.
+3. **Utrata fokusu ekranu / AppState:** Przejście aplikacji do tła (`AppState === 'background'`) natychmiast wywołuje `flush(userId)`.
+4. **Powrót połączenia sieciowego:** Gdy urządzenie odzyska dostęp do sieci, automatycznie synchronizuje zaległe karty.
 
 ```typescript
 import { AppState, AppStateStatus } from 'react-native';
@@ -232,20 +280,45 @@ let debounceTimeout: NodeJS.Timeout | null = null;
 let isSyncing = false;
 
 export const FlashcardSyncEngine = {
-  init(userId: string) {
-    // 1. Reakcja na przejście aplikacji w tło
+  async init(userId: string) {
+    // 1. Najpierw wypchnij ewentualne zaległe zmiany offline, a potem pobierz stan z chmury
+    await FlashcardSyncEngine.flush(userId);
+    await FlashcardSyncEngine.pullFromServer(userId);
+
+    // 2. Reakcja na przejście aplikacji w tło
     AppState.addEventListener('change', (nextState: AppStateStatus) => {
       if (nextState === 'background' || nextState === 'inactive') {
         FlashcardSyncEngine.flush(userId);
       }
     });
 
-    // 2. Reakcja na powrót sieci
+    // 3. Reakcja na powrót sieci
     NetInfo.addEventListener((state) => {
       if (state.isConnected) {
         FlashcardSyncEngine.flush(userId);
       }
     });
+  },
+
+  /**
+   * Pobiera fiszki z Supabase do lokalnej bazy SQLite (np. przy logowaniu na nowym urządzeniu)
+   */
+  async pullFromServer(userId: string): Promise<void> {
+    try {
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected) return;
+
+      const { data, error } = await supabase
+        .from('user_flashcards')
+        .select('*')
+        .eq('user_id', userId);
+
+      if (!error && data && data.length > 0) {
+        await LocalFlashcardsRepository.upsertManyFromServer(data);
+      }
+    } catch (err) {
+      console.warn('Pull from server failed:', err);
+    }
   },
 
   /**

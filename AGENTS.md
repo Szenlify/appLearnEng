@@ -80,5 +80,5 @@
 - **Frameworks:**
   - Mobile: Expo (React Native), `react-native-reanimated` (v3), `react-native-gesture-handler`, `expo-speech`, `react-native-youtube-iframe`, `zustand` for client state, `@tanstack/react-query` for server state, NativeWind / Tailwind CSS.
   - Backend: `Hono` on Bun or Node.js, `@google/genai`, `@aws-sdk/client-s3`.
-- **File Organization:** Feature-first organization (`features/player`, `features/flashcards`, `features/subscriptions`).
-- **Imports:** Absolute path aliases (e.g. `@/components`, `@/features`, `@learneng/shared`).
+- **File Organization (`apps/mobile`):** `app/` (Expo Router screens), `components/` (`player/`, `sheets/`, `flashcards/`), `stores/` (Zustand stores), `lib/` (`supabase.ts`, `speech.ts`, `db/LocalFlashcardsRepository.ts`, `db/FlashcardSyncEngine.ts`).
+- **Imports:** Absolute path aliases (`@/components/...`, `@/stores/...`, `@/lib/...`, `@learneng/shared`).

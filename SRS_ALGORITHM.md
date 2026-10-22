@@ -21,16 +21,22 @@ The algorithm computes when a card should next be reviewed based on the user's g
 
 - **Default Ease Factor ($EF$):** $2.5$ (minimum threshold: $1.3$)
 - **Interval ($I$):**
-  - If $n = 0$: $I_1 = 1\text{ day}$
-  - If $n = 1$: $I_2 = 3\text{ days}$ (or $6\text{ days}$ for Easy)
-  - If $n > 1$: $I_{n} = I_{n-1} \times EF$
-- **Ease Factor Update Formula:**
-  $$EF' = EF + (0.1 - (3 - q) \times (0.08 + (3 - q) \times 0.02))$$
-  where $q \in [0, 3]$ is the grade derived from swipe direction.
+  - If $q = 0$ (Again): $repetitions = 0$, $I = 1\text{ day}$
+  - If $q = 1$ (Hard): $I = 1\text{ day}$ (for $n = 0$) or $I = 2\text{ days}$ (for $n \ge 1$)
+  - If $q \in \{2, 3\}$ (Good / Easy):
+    - If $n = 0$: $I_1 = 1\text{ day}$ (or $2\text{ days}$ for Easy)
+    - If $n = 1$: $I_2 = 3\text{ days}$ (or $6\text{ days}$ for Easy)
+    - If $n > 1$: $I_{n} = \text{round}(I_{n-1} \times EF)$
+- **Ease Factor Update Formula (for $q \in \{1, 2, 3\}$):**
+  $$EF' = \max\Big(1.3,\; EF + \big(0.1 - (3 - q) \times (0.08 + (3 - q) \times 0.02)\big)\Big)$$
+  where:
+  - $q = 1$ (Hard) $\implies \Delta EF = -0.14$ (spadek łatwości)
+  - $q = 2$ (Good) $\implies \Delta EF = 0.00$ (utrzymanie łatwości)
+  - $q = 3$ (Easy) $\implies \Delta EF = +0.10$ (wzrost łatwości)
 
 ---
 
-## 3. TypeScript Implementation (`srs.ts`)
+## 3. TypeScript Implementation (`packages/shared/src/srs.ts`)
 
 ```typescript
 export interface SRSCardState {
@@ -65,27 +71,30 @@ export function calculateNextReview(
   let { repetitions, intervalDays, easeFactor } = currentState;
 
   if (grade === 0) {
-    // Forgot card (Again)
+    // Forgot card (Swipe Left / Again)
     repetitions = 0;
     intervalDays = 1;
   } else {
-    // Successful recall
-    if (repetitions === 0) {
-      intervalDays = 1;
+    if (grade === 1) {
+      // Hard recall (Swipe Down / Hard): short interval (1-2 days)
+      intervalDays = repetitions === 0 ? 1 : 2;
+    } else if (repetitions === 0) {
+      intervalDays = grade === 3 ? 2 : 1;
     } else if (repetitions === 1) {
       intervalDays = grade === 3 ? 6 : 3;
     } else {
-      intervalDays = Math.round(intervalDays * easeFactor);
+      const multiplier = grade === 3 ? easeFactor * 1.2 : easeFactor;
+      intervalDays = Math.round(intervalDays * multiplier);
     }
 
     repetitions += 1;
 
-    // Adjust ease factor
-    // Map grade 0..3 to SM-2 scale 2..5
-    const q = grade + 2;
-    easeFactor = easeFactor + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
+    // Adjust ease factor using q in 1..3
+    easeFactor = easeFactor + (0.1 - (3 - grade) * (0.08 + (3 - grade) * 0.02));
     if (easeFactor < 1.3) easeFactor = 1.3;
   }
+
+  if (easeFactor < 1.3) easeFactor = 1.3;
 
   const nextDate = new Date();
   nextDate.setDate(nextDate.getDate() + intervalDays);

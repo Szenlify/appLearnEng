@@ -26,7 +26,7 @@ CREATE TABLE public.profiles (
 -- ------------------------------------------------------------------------------
 CREATE TABLE public.user_subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL UNIQUE REFERENCES public.profiles(id) ON DELETE CASCADE,
     stripe_customer_id VARCHAR(255) UNIQUE,
     stripe_subscription_id VARCHAR(255) UNIQUE,
     plan_tier VARCHAR(30) NOT NULL DEFAULT 'free', -- 'free', 'starter', 'pro', 'master'

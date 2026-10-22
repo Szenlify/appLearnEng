@@ -401,10 +401,32 @@ export default function PlayerScreen() {
         sentence={selectedSentence}
         onClose={handleCloseSheet}
         onSaveWord={async (data) => {
-          // Zapis do fiszek przez lokalne repozytorium + endpoint
+          // Zapis słowa do lokalnego SQLite (0ms) + kolejka zbiorczego syncu do Supabase
+          await LocalFlashcardsRepository.insertCard({
+            id: `${data.video_id}_${Date.now()}`,
+            user_id: currentUserId,
+            ...data,
+            type: 'word',
+            repetitions: 0,
+            interval_days: 1,
+            ease_factor: 2.5,
+            next_review_at: new Date().toISOString(),
+          });
+          FlashcardSyncEngine.scheduleSync(currentUserId);
         }}
         onSaveSentence={async (data) => {
-          // Zapis całego zdania do fiszek
+          // Zapis całego zdania do lokalnego SQLite (0ms) + kolejka zbiorczego syncu do Supabase
+          await LocalFlashcardsRepository.insertCard({
+            id: `${data.video_id}_sent_${Date.now()}`,
+            user_id: currentUserId,
+            ...data,
+            type: 'sentence',
+            repetitions: 0,
+            interval_days: 1,
+            ease_factor: 2.5,
+            next_review_at: new Date().toISOString(),
+          });
+          FlashcardSyncEngine.scheduleSync(currentUserId);
         }}
       />
     </View>
@@ -516,8 +538,11 @@ Aplikacja całkowicie eliminuje tradycyjne logowanie hasłem/e-mailem. Dostępne
 import React from 'react';
 import { View, Text, Pressable, Image, Platform } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
+import * as WebBrowser from 'expo-web-browser';
 import { signInWithApple } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const handleAppleLogin = async () => {
@@ -530,11 +555,26 @@ export default function LoginScreen() {
 
   const handleGoogleLogin = async () => {
     try {
-      // Wywołanie Supabase OAuth Google Sign In
-      await supabase.auth.signInWithOAuth({
+      const redirectTo = 'learneng://auth/callback';
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: 'learneng://' },
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+        },
       });
+      if (error) throw error;
+      if (data?.url) {
+        const res = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+        if (res.type === 'success' && res.url) {
+          const params = new URLSearchParams(res.url.split('#')[1] || res.url.split('?')[1]);
+          const accessToken = params.get('access_token');
+          const refreshToken = params.get('refresh_token');
+          if (accessToken && refreshToken) {
+            await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          }
+        }
+      }
     } catch (err) {
       console.warn('Google Sign In failed:', err);
     }

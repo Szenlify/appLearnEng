@@ -80,14 +80,20 @@ Lokalizacja: `apps/mobile/eas.json`
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.applearneng.com",
-        "EXPO_PUBLIC_R2_URL": "https://cache.applearneng.com"
+        "EXPO_PUBLIC_R2_URL": "https://cache.applearneng.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://your-project.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOi...",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_..."
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_API_URL": "https://api.applearneng.com",
-        "EXPO_PUBLIC_R2_URL": "https://cache.applearneng.com"
+        "EXPO_PUBLIC_R2_URL": "https://cache.applearneng.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://your-project.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOi...",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_live_..."
       }
     }
   },

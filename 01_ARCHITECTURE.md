@@ -74,5 +74,5 @@ Nie stosujemy żadnych alternatywnych technologii. Cały projekt jest zdefiniowa
          v
 [ Aplikacja Mobilna ]
          | 7. Wyświetlenie Bottom Sheet z tłumaczeniem
-         | 8. Zapis do fiszek: wywołanie POST /api/v1/flashcards
+         | 8. Zapis do fiszek: natychmiastowy zapis do lokalnego `expo-sqlite` + zbiorcza synchronizacja (Batch Upsert) do Supabase PostgreSQL (`public.user_flashcards`)
 ```

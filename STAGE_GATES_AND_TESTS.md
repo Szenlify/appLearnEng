@@ -40,7 +40,7 @@ Nie wolno zaczynać kolejnego etapu, dopóki etap bieżący nie zostanie przetes
 * **Pliki testowe:** `packages/shared/src/__tests__/hash.test.ts`
 * **Wymagane testy:**
   1. Determinizm haszowania: `computeTranslationHash("run out of", "We ran out of milk.", "pl")` zawsze zwraca ten sam 64-znakowy hex SHA-256.
-  2. Niewrażliwość na wielkość liter i spacje brzegowe (trim & lowercase).
+  2. Niewrażliwość na wielkość liter, spacje brzegowe oraz znaki interpunkcyjne (`cleanWordToken("attitude.") === "attitude"`, zachowanie apostrofów w `"don't"`).
   3. Obsługa różnych języków: hash dla `_pl` różni się od `_de` i `_es`.
   4. Walidacja schematu Zod dla `TranslationResponse`.
 * **Komenda bramki:** `bun test packages/shared`
@@ -61,14 +61,14 @@ Nie wolno zaczynać kolejnego etapu, dopóki etap bieżący nie zostanie przetes
 
 ---
 
-### 🟢 ETAP 3: Fallback Gemini 2.5 Lite & Zapis do Cloudflare R2
-* **Zakres prac:** `POST /api/v1/translate` (wywołanie Gemini ze structured outputs + upload do R2 root).
+### 🟢 ETAP 3: Fallback Gemini 2.5 Lite, Quota Guard & Zapis do Cloudflare R2
+* **Zakres prac:** `POST /api/v1/translate` (`generateContextualTranslation` z obsługą phrasal verbs, `R2StorageService.saveTranslationToRoot` oraz `evaluateQuota` z limitem 50/24h dla planu `free`).
 * **Pliki testowe:** `apps/backend/src/__tests__/translate.test.ts`
 * **Wymagane testy (z mockiem Gemini i S3 client):**
   1. Walidacja body żądania (brak `word` lub `sentence` rzuca HTTP 400).
-  2. Sprawdzenie, czy funkcja generuje poprawny hash pliku.
-  3. Weryfikacja, czy wywołano upload do S3/R2 pod poprawny klucz `/{hash}.json` w roocie bucketa.
-  4. Zwracany obiekt ma wszystkie pola: `simple_definition`, `contextual_translation`, `context_explanation`, `ipa`, `cefr_level`.
+  2. Sprawdzenie, czy funkcja generuje poprawny hash pliku i wywołuje upload do S3/R2 pod klucz `${hash}.json` w roocie bucketa.
+  3. Zwracany obiekt ma wszystkie pola: `simple_definition`, `contextual_translation`, `context_explanation`, `ipa`, `cefr_level`, `example_sentence_native`.
+  4. Weryfikacja `evaluateQuota`: zwrot `QUOTA_EXCEEDED` (HTTP 429) po 50 zapytaniach na planie `free`, automatyczny reset po 24h oraz brak limitu dla statusu `trialing`/`active`.
 * **Komenda bramki:** `bun test apps/backend/src/__tests__/translate.test.ts`
 
 ---
@@ -119,15 +119,16 @@ Nie wolno zaczynać kolejnego etapu, dopóki etap bieżący nie zostanie przetes
 
 ---
 
-### 🟢 ETAP 8: Płatności Stripe & Webhooki
-* **Zakres prac:** Tworzenie sesji checkoutu, weryfikacja webhooków i aktualizacja uprawnień.
-* **Pliki testowe:** `apps/backend/src/__tests__/stripe.test.ts`
+### 🟢 ETAP 8: Offline SQLite (Push & Pull Sync), Talia Fiszek Tinder 4-Way Swipe, Płatności Stripe & Webhooki
+* **Zakres prac:** Lokalna baza `expo-sqlite` (`LocalFlashcardsRepository`), dwukierunkowy silnik synchronizacji zbiorczej (`FlashcardSyncEngine`: `flush` + `pullFromServer`), ekran powtórek `TinderCard` / `flashcards.tsx` z haptyką `expo-haptics`, ekran `profile.tsx`, modal `paywall.tsx`, tworzenie sesji Stripe Checkout i asynchroniczna weryfikacja webhooków (`constructEventAsync`).
+* **Pliki testowe:** `apps/mobile/__tests__/sqlite-sync.test.ts` oraz `apps/backend/src/__tests__/stripe.test.ts`
 * **Wymagane testy:**
-  1. Tworzenie sesji checkoutu uwzględnia `trial_period_days: 3` dla wszystkich 3 planów (Starter, Pro, Master).
-  2. Poprawne waluty dla rynków: PLN dla Polski (z BLIK), EUR dla Niemiec, USD globalnie.
-  3. Webhook `checkout.session.completed` aktywuje subskrypcję w bazie.
-  4. Webhook `customer.subscription.deleted` cofa uprawnienia do planu darmowego.
-* **Komenda bramki:** `bun test apps/backend/src/__tests__/stripe.test.ts`
+  1. Lokalny zapis fiszki ustawia `sync_status = 'pending_insert'`, a swipe ustawia `'pending_update'` i po `flush()` zmienia status na `'synced'`.
+  2. `pullFromServer()` pobiera fiszki z chmury bez nadpisywania lokalnych niesynchronizowanych zmian.
+  3. Tworzenie sesji checkoutu uwzględnia `trial_period_days: 3` dla wszystkich 3 planów (Starter, Pro, Master).
+  4. Poprawne waluty i metody płatności dla rynków: PLN dla Polski (z `blik` i `p24`), EUR dla strefy Euro (`sepa_debit`), USD globalnie.
+  5. Webhook `checkout.session.completed` aktywuje subskrypcję w bazie, a `customer.subscription.deleted` cofa uprawnienia do planu darmowego.
+* **Komenda bramki:** `bun test apps/mobile/__tests__/sqlite-sync.test.ts apps/backend/src/__tests__/stripe.test.ts` && `bun test`
 
 ---
 

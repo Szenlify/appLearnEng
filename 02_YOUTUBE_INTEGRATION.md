@@ -26,7 +26,7 @@ Transkrypcje pobiera wyłącznie backend za pośrednictwem serwisu `YouTubeCapti
 ## 3. Synchronizacja Wideo z Napisami w Aplikacji Mobilnej
 
 Komponent `SubtitleTrack` synchronizuje się z odtwarzaczem w czasie rzeczywistym:
-1. **Pętla czasu:** Stan odtwarzacza aktualizowany jest w interwale 100 ms przez funkcję `playerRef.current?.getCurrentTime()`.
+1. **Pętla czasu:** Stan odtwarzacza aktualizowany jest w interwale 150 ms przez funkcję `playerRef.current?.getCurrentTime()`.
 2. **Aktywne zdanie:** Aplikacja wyszukuje aktywne zdanie za pomocą wyszukiwania binarnego:
    `cues.find(c => currentTime >= c.start && currentTime <= c.end)`.
 3. **Płynny Auto-Scroll:** Lista napisów przewija się za pomocą `FlatList` / `ScrollView` z metodą `scrollToIndex`, utrzymując aktualnie wymawiane zdanie na środku ekranu.

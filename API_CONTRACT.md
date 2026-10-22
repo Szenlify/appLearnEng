@@ -6,17 +6,26 @@ This document defines the single source of truth for all data contracts across M
 
 ## 1. Cloudflare R2 Static Cache Contract (`/{hash}.json`)
 
-### 1.1 Hash Generation Algorithm (Deterministic & Multilingual)
-Both Mobile and Backend compute the file hash identically:
+### 1.1 Hash Generation Algorithm & Word Normalization (Deterministic, Synchronous & Cross-Platform)
+Both Mobile (React Native / Hermes) and Backend (Bun) clean punctuation from tapped tokens and compute the file hash identically in `packages/shared/src/hash.ts` using `@noble/hashes` (pure JS, 0 native dependencies, works synchronously in both Hermes and Bun without Node's `'crypto'` module):
 ```typescript
-import { createHash } from 'crypto'; // or expo-crypto in mobile
+import { sha256 } from '@noble/hashes/sha256';
+import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils';
+
+/**
+ * Strips leading/trailing punctuation from a tapped subtitle token
+ * while preserving internal apostrophes ("don't") and phrase spaces ("put up with").
+ */
+export function cleanWordToken(rawToken: string): string {
+  return rawToken.trim().replace(/^[^\w']+|[^\w']+$/g, '');
+}
 
 export function computeTranslationHash(word: string, sentence: string, targetLang = 'pl'): string {
-  const normalizedWord = word.trim().toLowerCase();
+  const normalizedWord = cleanWordToken(word).toLowerCase();
   const normalizedSentence = sentence.trim().toLowerCase();
   const normalizedLang = targetLang.trim().toLowerCase();
   const rawKey = `${normalizedWord}_${normalizedSentence}_${normalizedLang}`;
-  return createHash('sha256').update(rawKey).digest('hex');
+  return bytesToHex(sha256(utf8ToBytes(rawKey)));
 }
 ```
 
@@ -111,19 +120,52 @@ Returns `TranslationResponse` (HTTP 200). The backend simultaneously saves this 
 
 ## 4. Flashcards (Fiszki) Contract
 
-### 4.1 Endpoint: `POST /api/v1/flashcards`
-Allows saving either a **single word** OR an **entire context sentence**.
+### 4.1 Shared Flashcard Entity (`Flashcard`)
+Used across `useFlashcardsStore`, `TinderCard.tsx`, `LocalFlashcardsRepository.ts`, and `public.user_flashcards`:
+
+```typescript
+export type CEFRLevel = 'A1' | 'A2' | 'B1' | 'B2' | 'C1' | 'C2';
+
+export interface Flashcard {
+  id: string;
+  user_id: string;
+  type: 'word' | 'sentence';
+  target_text: string;           // Word ("put up with") OR Sentence ("I can't put up with this.")
+  translation: string;           // Native translation
+  simple_definition?: string;    // Simple definition in native language
+  context_sentence?: string;     // Source sentence from video
+  context_explanation?: string;  // "Explain in context" details
+  lemma?: string;
+  part_of_speech?: string;
+  ipa?: string;
+  cefr_level?: CEFRLevel;
+  r2_cache_hash?: string;
+  video_id?: string;
+  video_timestamp_sec?: number;
+  repetitions: number;
+  interval_days: number;
+  ease_factor: number;
+  next_review_at: string;        // ISO 8601 timestamp
+  created_at?: string;
+  updated_at?: string;
+}
+```
+
+### 4.2 Payload for Creating a Flashcard (`CreateFlashcardRequestBody`)
+Allows saving either a **single word** OR an **entire context sentence** into local SQLite (`LocalFlashcardsRepository.insertCard`) followed by background batch sync (`FlashcardSyncEngine`) or `POST /api/v1/flashcards`:
 
 ```typescript
 export interface CreateFlashcardRequestBody {
   type: 'word' | 'sentence';
   target_text: string;           // Word ("put up with") OR Sentence ("I can't put up with this.")
   translation: string;           // Native translation
-  context_sentence?: string;     // Context sentence from video
   simple_definition?: string;    // Simple definition
+  context_sentence?: string;     // Context sentence from video
+  context_explanation?: string;  // "Explain in context" details
   lemma?: string;
+  part_of_speech?: string;
   ipa?: string;
-  notes?: string;
+  cefr_level?: CEFRLevel;
   video_id: string;
   video_timestamp_sec: number;
   r2_cache_hash?: string;
