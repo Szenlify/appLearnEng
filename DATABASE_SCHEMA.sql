@@ -13,7 +13,7 @@ CREATE TABLE public.profiles (
     email VARCHAR(255) NOT NULL,
     full_name VARCHAR(100),
     avatar_url TEXT,
-    native_language VARCHAR(10) NOT NULL DEFAULT 'es', -- 'es', 'de', 'fr', 'pl', 'it', 'ja'
+    native_language VARCHAR(10) NOT NULL DEFAULT 'pl', -- 'pl', 'es', 'de', 'fr', 'it', 'ja'
     preferred_currency VARCHAR(10) NOT NULL DEFAULT 'USD', -- 'USD', 'EUR', 'PLN', 'JPY'
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -126,7 +126,7 @@ BEGIN
         NEW.email,
         NEW.raw_user_meta_data->>'full_name',
         NEW.raw_user_meta_data->>'avatar_url',
-        COALESCE(NEW.raw_user_meta_data->>'native_language', 'es'),
+        COALESCE(NEW.raw_user_meta_data->>'native_language', 'pl'),
         COALESCE(NEW.raw_user_meta_data->>'preferred_currency', 'USD')
     );
     

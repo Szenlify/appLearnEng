@@ -23,17 +23,19 @@ BRAMKA: Popraw kod, aż wszystkie testy będą zielone (PASS). Pod żadnym pozor
 
 ---
 
-### 🟢 PROMPT 2: YouTube Subtitles Scraper & Testy Parsowania (Etap 2)
+### 🟢 PROMPT 2: YouTube Subtitles Scraper & Wyszukiwarka Wideo (Etap 2)
 ```text
 Przeczytaj YOUTUBE_SCRAPER.md, API_CONTRACT.md oraz STAGE_GATES_AND_TESTS.md (Etap 2).
 Zadanie:
 1. W apps/backend zaimplementuj YouTubeCaptionsService wyciągający napisy z timedtext bez używania płatnego Google Cloud API.
 2. Zaimplementuj endpoint GET /api/v1/captions?videoId=XYZ&lang=en zwracający SubtitleCue[] ze stokenizowanymi słowami.
-3. Napisz testy jednostkowe apps/backend/src/__tests__/captions.test.ts sprawdzające:
+3. Zaimplementuj YouTubeSearchService oraz endpoint GET /api/v1/search?q=XYZ wyszukujący filmy na YouTube z pamięcią podręczną 24h.
+4. Napisz testy jednostkowe apps/backend/src/__tests__/captions.test.ts oraz search.test.ts sprawdzające:
    - parsowanie XML do SubtitleCue[],
    - poprawność tokenizacji słów ze znakami interpunkcyjnymi i apostrofami,
-   - rzucanie błędu NO_CAPTIONS_AVAILABLE przy braku napisów.
-4. Uruchom: bun test apps/backend/src/__tests__/captions.test.ts.
+   - rzucanie błędu NO_CAPTIONS_AVAILABLE przy braku napisów,
+   - zwracanie SearchVideoItem[] i działanie cache dla powtórzonego zapytania wyszukiwarki.
+5. Uruchom: bun test apps/backend/src/__tests__/captions.test.ts apps/backend/src/__tests__/search.test.ts.
 BRAMKA: Zapewnij 100% zielonych testów. NIE MODYFIKUJ testów z Etapu 1.
 ```
 
@@ -78,7 +80,7 @@ BRAMKA: Wszystkie testy muszą przejść na zielono. Nie modyfikuj istniejących
 Przeczytaj DATABASE_SCHEMA.sql, AUTH_AND_SECURITY.md oraz STAGE_GATES_AND_TESTS.md (Etap 5).
 Zadanie:
 1. W apps/mobile zaimplementuj lib/supabase.ts z adapterem expo-secure-store.
-2. Zbuduj ekrany logowania w app/(auth)/: login.tsx (Apple Sign In, Google Sign In, Email), register.tsx.
+2. Zbuduj ekran logowania w app/(auth)/login.tsx (wyłącznie szybkie logowanie Apple Sign In oraz Google Sign In – zero formularzy email/hasło).
 3. Zaimplementuj AuthGuard w app/_layout.tsx przekierowujący niezalogowanych użytkowników.
 4. Napisz testy apps/mobile/__tests__/auth.test.ts sprawdzające logikę adaptera i guardów nawigacji.
 5. Uruchom: bun test apps/mobile/__tests__/auth.test.ts.
@@ -87,12 +89,12 @@ BRAMKA: Wszystkie testy zielone. Zakaz modyfikacji wcześniejszych testów.
 
 ---
 
-### 🟢 PROMPT 6: Odtwarzacz Wideo & Napisy w Czasie Rzeczywistym (Etap 6)
+### 🟢 PROMPT 6: Odtwarzacz Wideo & Wyszukiwarka YouTube (Etap 6)
 ```text
-Przeczytaj DESIGN_SYSTEM.md, NAVIGATION_MAP.md oraz STAGE_GATES_AND_TESTS.md (Etap 6).
+Przeczytaj DESIGN_SYSTEM.md, NAVIGATION_MAP.md, MOBILE_SCREENS_SPEC.md oraz STAGE_GATES_AND_TESTS.md (Etap 6).
 Zadanie:
-1. W apps/mobile stwórz ekran app/(tabs)/player.tsx z odtwarzaczem react-native-youtube-iframe oraz SubtitleTrack.
-2. Zaimplementuj synchronizację czasu (onStateChange/interval), podświetlanie aktywnego słowa i automatyczne wyśrodkowanie tekstu (auto-scroll).
+1. W apps/mobile stwórz ekran wyszukiwarki w stylu YouTube app/(tabs)/index.tsx (wyszukiwanie na żywo, kafelki 16:9, auto-detect schowka, polecane CEFR) oraz ekran odtwarzacza app/(tabs)/player.tsx z react-native-youtube-iframe i SubtitleTrack.
+2. Zaimplementuj synchronizację czasu (pętla interwałowa 150ms odpytująca playerRef.current.getCurrentTime()), podświetlanie aktywnego słowa i automatyczne wyśrodkowanie tekstu (auto-scroll).
 3. Kliknięcie w słowo pauzuje wideo i otwiera TranslationSheet.
 4. Napisz testy apps/mobile/__tests__/subtitles.test.ts weryfikujące funkcję findActiveCue oraz wywoływanie pauzy odtwarzacza.
 5. Uruchom: bun test apps/mobile/__tests__/subtitles.test.ts.

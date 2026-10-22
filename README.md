@@ -20,7 +20,7 @@ Nowoczesna aplikacja mobilna cross-platform (iOS i Android) oraz ekosystem SaaS 
 5. **Fiszki Tinder-Style z gestami w 4 osiach:**
    - Stos kart 3D: Lewo (Powtórz), Dół (Trudne), Prawo (Dobrze), Góra (Łatwe) + obrót 3D na tapnięcie.
 6. **Autentykacja i Baza Danych:**
-   - Supabase Auth (Sign in with Apple, Google, Email) + PostgreSQL na Supabase z pełnym Row Level Security (RLS).
+   - Supabase Auth (Sign in with Apple, Google) + PostgreSQL na Supabase z pełnym Row Level Security (RLS). Zero haseł i formularzy email.
 7. **Monetyzacja przez Stripe (Domyślnie USD z lokalizacją walut):**
    - 3 plany miesięczne: **Starter ($4.99)**, **Pro ($8.99)**, **Master ($16.99)**.
    - Każdy plan posiada **3-dniowy darmowy okres próbny (3-Day Free Trial)**.
@@ -38,8 +38,11 @@ Projekt jest w 100% przygotowany pod asystentów AI i szybkie programowanie bez 
 * **[STATE_MANAGEMENT.md](./STATE_MANAGEMENT.md)** – Zustand (`usePlayerStore`, `useFlashcardsStore`) oraz TanStack Query v5.
 * **[EDGE_CASES_AND_ERRORS.md](./EDGE_CASES_AND_ERRORS.md)** – Obsługa braku napisów, błędnych linków YT, debouncing klikania i tryb offline.
 * **[COMPONENT_SPECS.md](./COMPONENT_SPECS.md)** – Dokładna specyfikacja propsów, styli i animacji komponentów UI.
+* **[MOBILE_SCREENS_SPEC.md](./MOBILE_SCREENS_SPEC.md)** – Pełna specyfikacja widoków i logiki ekranów Expo Router (Explore, Player, Flashcards, Profile, Paywall).
+* **[OFFLINE_SQLITE_AND_SYNC.md](./OFFLINE_SQLITE_AND_SYNC.md)** – Baza lokalna SQLite (nowe API Expo SDK 51) i silnik zbiorczej synchronizacji (Batch Sync).
+* **[MOBILE_BOOTSTRAP_AND_CONFIG.md](./MOBILE_BOOTSTRAP_AND_CONFIG.md)** – Konfiguracja monorepo, NativeWind v4, Metro, Babel oraz poprawka dźwięku iOS.
 * **[DEPLOYMENT_AND_EAS.md](./DEPLOYMENT_AND_EAS.md)** – Konfiguracja `app.json` oraz `eas.json` do publikacji w App Store i Google Play.
-* **[AUTH_AND_SECURITY.md](./AUTH_AND_SECURITY.md)** – Implementacja logowania Apple, Google, Email oraz bezpiecznego magazynu tokenów (SecureStore).
+* **[AUTH_AND_SECURITY.md](./AUTH_AND_SECURITY.md)** – Implementacja logowania Apple i Google (Social Sign-In) oraz bezpiecznego magazynu tokenów (SecureStore).
 * **[NAVIGATION_MAP.md](./NAVIGATION_MAP.md)** – Struktura ekranów Expo Router, szklany pasek nawigacji (Frosted Glass TabBar) i modale.
 * **[DESIGN_SYSTEM.md](./DESIGN_SYSTEM.md)** – Tokeny kolorów (Dark OLED), typografia, zachowanie odtwarzacza i stosu fiszek a'la Tinder.
 * **[SRS_ALGORITHM.md](./SRS_ALGORITHM.md)** – Algorytm powtórek interwałowych SM-2 powiązany z 4 kierunkami swipe'a.

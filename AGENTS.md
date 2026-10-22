@@ -41,7 +41,7 @@
 ├── packages/
 │   └── shared/         # Shared TypeScript interfaces, Zod schemas, hash helpers, SRS logic
 ├── docs/               # Architecture and technical specs (all *.md files)
-└── .cursorrules / AGENTS.md (Ref: STATE_MANAGEMENT.md, EDGE_CASES_AND_ERRORS.md, COMPONENT_SPECS.md, DEPLOYMENT_AND_EAS.md)
+└── .cursorrules / AGENTS.md (Ref: MOBILE_SCREENS_SPEC.md, OFFLINE_SQLITE_AND_SYNC.md, MOBILE_BOOTSTRAP_AND_CONFIG.md, STATE_MANAGEMENT.md, EDGE_CASES_AND_ERRORS.md, COMPONENT_SPECS.md, DEPLOYMENT_AND_EAS.md)
 ```
 
 ---

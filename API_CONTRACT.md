@@ -65,6 +65,28 @@ export interface CaptionsResponse {
 }
 ```
 
+### 2.2 Endpoint: `GET /api/v1/search?q={query}&pageToken={pageToken}`
+Umożliwia swobodne przeszukiwanie YouTube wewnątrz aplikacji w stylu natywnej aplikacji YouTube:
+
+```typescript
+export interface SearchVideoItem {
+  id: string;                 // YouTube Video ID (np. "kJQP7kiw5Fk")
+  title: string;
+  channelTitle: string;
+  thumbnailUrl: string;
+  duration?: string;          // np. "14:20"
+  publishedAt?: string;       // ISO 8601 string
+  hasCaptions?: boolean;      // flaga dostępności napisów
+}
+
+export interface SearchResponse {
+  query: string;
+  items: SearchVideoItem[];
+  nextPageToken?: string;
+  cached: boolean;
+}
+```
+
 ---
 
 ## 3. Translation Fallback Endpoint

@@ -38,7 +38,7 @@ Aplikacja powstaje w jednym, zablokowanym stacku technologicznym: **React Native
 
 ### Sprint 3: Fiszki Tinder-Deck i Supabase (Tydzień 4)
 - PostgreSQL na Supabase: tabele `profiles`, `user_flashcards`, `user_subscriptions`.
-- Logowanie przez Supabase Auth (Apple Sign In, Google, Email).
+- Logowanie przez Supabase Auth (wyłącznie Apple Sign In oraz Google Sign In).
 - Ekran powtórek fiszek a'la Tinder z bibliotekami `react-native-reanimated` i `react-native-gesture-handler`.
 
 ### Sprint 4: Płatności Stripe i Publikacja (Tydzień 5-6)

@@ -11,9 +11,7 @@ app/
 ├── _layout.tsx                 # Root layout (Fonts, Supabase Auth Provider, Dark Theme)
 ├── (auth)/                     # Unauthenticated Flow
 │   ├── _layout.tsx
-│   ├── login.tsx               # Apple Sign In, Google Sign In, Email Login
-│   ├── register.tsx            # New account creation
-│   └── forgot-password.tsx     # Password recovery
+│   └── login.tsx               # Social Auth Only: Apple Sign In & Google Sign In
 │
 ├── (tabs)/                     # Main Bottom Tab Navigation
 │   ├── _layout.tsx             # Frosted Glass TabBar with BlurView
@@ -24,8 +22,7 @@ app/
 │
 └── (modals)/                   # Floating / Fullscreen Modals
     ├── _layout.tsx             # presentation: 'modal'
-    ├── paywall.tsx             # 💎 Stripe Paywall (Starter / Pro / Master + 3 Dni Trial)
-    └── video-selector.tsx      # Modal szybkiego wklejania linku YT
+    └── paywall.tsx             # 💎 Stripe Paywall (Starter / Pro / Master + 3 Dni Trial)
 ```
 
 ---
@@ -42,13 +39,18 @@ The bottom navigation bar uses `expo-blur` with dark vibrancy:
 
 ## 3. Screen Descriptions & Primary UX Flows
 
-### 3.1 🔍 Screen 1: Odkrywaj (`(tabs)/index.tsx`)
-- **Górny pasek wyszukiwania:** Pole *"Wklej link do filmu z YouTube..."* z automatycznym wykrywaniem schowka (`Clipboard.getStringAsync()`).
-- **Sekcja "Oglądaj dalej":** Kafelki ostatnio oglądanych filmów z paskiem postępu i liczbą zapisanych słówek.
-- **Sekcja "Kategorie & Poziomy":**
-  - Dla początkujących (A1–A2) – bajki, proste vlogi.
-  - Dla średniozaawansowanych (B1–B2) – podcasty naukowe, wywiady, TED-Ed.
-  - Dla zaawansowanych (C1–C2) – debaty, stand-up, seriale.
+### 3.1 🔍 Screen 1: Odkrywaj & Wyszukiwarka YouTube (`(tabs)/index.tsx`)
+- **Górny pasek wyszukiwania (Live YouTube Search):**
+  - Użytkownik wpisuje dowolną frazę (np. *„MrBeast”*, *„BBC News”*, *„Joe Rogan”*) lub wkleja link.
+  - Wyszukiwarka zwraca listę filmów prosto z YouTube wewnątrz aplikacji z miniaturkami HD, tytułami i długością.
+  - Automatyczne wykrywanie linku ze schowka systemowego (`Clipboard.getStringAsync()`).
+- **Gdy brak zapytania (Domyślny widok główny):**
+  - **Sekcja "Oglądaj dalej":** Kafelki ostatnio oglądanych filmów z paskiem postępu i liczbą zapisanych słówek.
+  - **Sekcja "Kategorie & Poziomy CEFR":**
+    - A1–A2: bajki, proste dialogi codzienne.
+    - B1–B2: TED-Ed, podcasty naukowe, wywiady.
+    - C1–C2: debaty, stand-up, przemówienia.
+- **Kliknięcie kafelka:** Natychmiastowe przejście do `/(tabs)/player?videoId={id}` z synchronizacją napisów.
 
 ### 3.2 🎬 Screen 2: Odtwarzacz & Napisy (`(tabs)/player.tsx`)
 - Wideo YouTube osadzone w formacie 16:9 (`react-native-youtube-iframe`).

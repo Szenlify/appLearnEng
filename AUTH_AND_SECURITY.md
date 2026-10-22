@@ -4,13 +4,13 @@ This document specifies the authentication system and credential security for Le
 
 ---
 
-## 1. Authentication Provider: Supabase Auth
+## 1. Authentication Provider: Supabase Auth (Social Only: Apple & Google)
 
-We use **Supabase Auth** as the backend authentication layer. It natively handles:
-1. **Sign in with Apple** (Mandatory for App Store review if social login is used).
-2. **Sign in with Google** (Essential for Android and high conversion).
-3. **Email + Magic Link / Password** (Fallback for users without social accounts).
-4. **JWT Management & Session Refreshing.**
+Aplikacja całkowicie eliminuje tradycyjne logowanie hasłem i e-mailem na rzecz bezhasłowego, natychmiastowego logowania 1-kliknięciem (Social Sign-In):
+1. **Sign in with Apple** (`expo-apple-authentication`) — Domyślne, rekomendowane logowanie na iOS (wymóg Apple App Store).
+2. **Sign in with Google** — Domyślne, rekomendowane logowanie na Androidzie i alternatywa dla iOS.
+3. **Brak haseł i e-maili:** Zero formularzy rejestracyjnych, brak konieczności resetowania haseł, maksymalna konwersja użytkowników (1-tap onboarding).
+4. **Zarządzanie sesją:** Tokeny JWT i automatyczne odświeżanie sesji przez Supabase Auth.
 
 ---
 

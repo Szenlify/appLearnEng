@@ -57,9 +57,9 @@ Aby baza danych nie stała się wąskim gardłem kosztowym, wdrażamy 6 kluczowy
 - **Rozwiązanie:** 
   - Ocena fiszki (Lewo, Dół, Prawo, Góra) aktualizuje stan lokalny natychmiast.
   - Zmiany są kolejkowane w pamięci i wysyłane do bazy **zbiorczo w jednej paczce (Batch Mutation)**:
-    - Co 30 sekund LUB
-    - Przy zakończeniu sesji nauki LUB
-    - Przy wyjściu z ekranu fiszek.
+    - Po 5 sekundach bezruchu (debounce) LUB
+    - Przy wyjściu z aplikacji do tła (`AppState === 'background'`) LUB
+    - Przy zakończeniu sesji nauki.
 - **Efekt:** Wiele zapytań do bazy redukujemy do **1 zapytania zbiorczego (`upsert`)**.
 
 ### 🎯 3. Precyzyjne Indeksy Złożone (B-Tree Composite Indexes)

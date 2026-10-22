@@ -48,15 +48,16 @@ Nie wolno zaczynać kolejnego etapu, dopóki etap bieżący nie zostanie przetes
 
 ---
 
-### 🟢 ETAP 2: Scraper Napisów YouTube & Endpoint Transkrypcji
-* **Zakres prac:** `YouTubeCaptionsService` oraz endpoint `GET /api/v1/captions`.
-* **Pliki testowe:** `apps/backend/src/__tests__/captions.test.ts`
+### 🟢 ETAP 2: Scraper Napisów YouTube & Wyszukiwarka Wideo
+* **Zakres prac:** `YouTubeCaptionsService` (endpoint `GET /api/v1/captions`) oraz `YouTubeSearchService` (endpoint `GET /api/v1/search`).
+* **Pliki testowe:** `apps/backend/src/__tests__/captions.test.ts` oraz `apps/backend/src/__tests__/search.test.ts`
 * **Wymagane testy:**
   1. Poprawne parsowanie XML formatu `timedtext` do obiektów `SubtitleCue[]`.
   2. Dokładność znaczników czasu: `start`, `duration`, `end`.
   3. Funkcja tokenizacji: zdanie `"I can't put up with this!"` dzieli się na prawidłowe tokeny wyrazowe z zachowaniem apostrofów.
   4. Obsługa błędów: zwrot błędu `NO_CAPTIONS_AVAILABLE` dla wideo bez angielskich napisów.
-* **Komenda bramki:** `bun test apps/backend/src/__tests__/captions.test.ts`
+  5. Wyszukiwarka wideo: endpoint `GET /api/v1/search?q=mrbeast` zwraca tablicę `SearchVideoItem[]` z `id`, `title`, `thumbnailUrl`, a powtórne zapytanie zwraca flagę `cached: true`.
+* **Komenda bramki:** `bun test apps/backend/src/__tests__/captions.test.ts apps/backend/src/__tests__/search.test.ts`
 
 ---
 
