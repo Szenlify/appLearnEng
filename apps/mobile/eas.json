@@ -1,0 +1,52 @@
+{
+  "cli": {
+    "version": ">= 12.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.applearneng.com",
+        "EXPO_PUBLIC_R2_URL": "https://cache.applearneng.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://your-project.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOi...",
+        "EXPO_PUBLIC_RC_IOS_KEY": "appl_...",
+        "EXPO_PUBLIC_RC_ANDROID_KEY": "goog_..."
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.applearneng.com",
+        "EXPO_PUBLIC_R2_URL": "https://cache.applearneng.com",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://your-project.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOi...",
+        "EXPO_PUBLIC_RC_IOS_KEY": "appl_...",
+        "EXPO_PUBLIC_RC_ANDROID_KEY": "goog_..."
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "apple-dev@softileo.com",
+        "ascAppId": "your_app_store_connect_id",
+        "appleTeamId": "your_team_id"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-services-key.json",
+        "track": "internal"
+      }
+    }
+  }
+}

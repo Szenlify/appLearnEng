@@ -1,0 +1,1 @@
+export { deleteUserAccount } from './auth';
