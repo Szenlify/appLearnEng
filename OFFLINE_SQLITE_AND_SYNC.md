@@ -60,6 +60,13 @@ import { SRSCardState } from '@learneng/shared';
 
 let dbInstance: SQLite.SQLiteDatabase | null = null;
 
+/**
+ * Allows injecting an in-memory/mock SQLite database in unit tests (sqlite-sync.test.ts)
+ */
+export function setDbInstanceForTests(mockDb: any) {
+  dbInstance = mockDb;
+}
+
 export async function getDb(): Promise<SQLite.SQLiteDatabase> {
   if (!dbInstance) {
     dbInstance = await SQLite.openDatabaseAsync('learneng.db');

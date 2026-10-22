@@ -26,17 +26,16 @@ BRAMKA: Popraw kod, aż wszystkie testy będą zielone (PASS). Pod żadnym pozor
 
 ### 🟢 PROMPT 2: YouTube Subtitles Scraper & Wyszukiwarka Wideo (Etap 2)
 ```text
-Przeczytaj YOUTUBE_SCRAPER.md, EDGE_CASES_AND_ERRORS.md (Sekcja 1 i 2), API_CONTRACT.md oraz STAGE_GATES_AND_TESTS.md (Etap 2).
+Przeczytaj YOUTUBE_SCRAPER.md, 01_ARCHITECTURE.md (Sekcja 3 - apps/backend/src/index.ts), EDGE_CASES_AND_ERRORS.md (Sekcja 1 i 2), API_CONTRACT.md oraz STAGE_GATES_AND_TESTS.md (Etap 2).
 Zadanie:
 1. W apps/backend zaimplementuj YouTubeCaptionsService wyciągający napisy z timedtext bez używania płatnego Google Cloud API (dokładnie wg YOUTUBE_SCRAPER.md).
-2. Zaimplementuj endpoint GET /api/v1/captions?videoId=XYZ&lang=en zwracający CaptionsResponse (SubtitleCue[] ze stokenizowanymi słowami) lub HTTP 422 { code: 'NO_CAPTIONS_AVAILABLE' }.
-3. Zaimplementuj YouTubeSearchService oraz endpoint GET /api/v1/search?q=XYZ wyszukujący filmy na YouTube z pamięcią podręczną 24h.
-4. Napisz testy jednostkowe apps/backend/src/__tests__/captions.test.ts oraz apps/backend/src/__tests__/search.test.ts sprawdzające:
+2. Zaimplementuj YouTubeSearchService (search.service.ts) oraz podepnij endpointy GET /api/v1/captions?videoId=XYZ&lang=en i GET /api/v1/search?q=XYZ w apps/backend/src/index.ts (eksportując instancję Hono `export const app = new Hono()`).
+3. Napisz testy jednostkowe apps/backend/src/__tests__/captions.test.ts oraz apps/backend/src/__tests__/search.test.ts sprawdzające:
    - parsowanie XML do SubtitleCue[] (start, duration, end),
    - poprawność tokenizacji słów ze znakami interpunkcyjnymi i apostrofami,
-   - rzucanie błędu NO_CAPTIONS_AVAILABLE przy braku angielskich napisów,
+   - rzucanie błędu NO_CAPTIONS_AVAILABLE (HTTP 422) przy braku angielskich napisów,
    - zwracanie SearchVideoItem[] i działanie cache (cached: true) dla powtórzonego zapytania wyszukiwarki.
-5. Uruchom: bun test apps/backend/src/__tests__/captions.test.ts apps/backend/src/__tests__/search.test.ts.
+4. Uruchom: bun test apps/backend/src/__tests__/captions.test.ts apps/backend/src/__tests__/search.test.ts.
 BRAMKA: Zapewnij 100% zielonych testów. NIE MODYFIKUJ testów z Etapu 1.
 ```
 
@@ -81,26 +80,26 @@ BRAMKA: Wszystkie testy muszą przejść na zielono. Nie modyfikuj istniejących
 
 ### 🟢 PROMPT 5: Supabase Auth & Bezpieczny Storage (Etap 5)
 ```text
-Przeczytaj DATABASE_SCHEMA.sql, AUTH_AND_SECURITY.md, MOBILE_BOOTSTRAP_AND_CONFIG.md (Sekcja 8) oraz STAGE_GATES_AND_TESTS.md (Etap 5).
+Przeczytaj DATABASE_SCHEMA.sql, AUTH_AND_SECURITY.md (Sekcje 1-4), MOBILE_BOOTSTRAP_AND_CONFIG.md (Sekcja 8) oraz STAGE_GATES_AND_TESTS.md (Etap 5).
 Zadanie:
-1. W apps/mobile zaimplementuj lib/supabase.ts z adapterem expo-secure-store oraz lib/auth.ts (signInWithApple).
+1. W apps/mobile zaimplementuj lib/supabase.ts z adapterem expo-secure-store oraz lib/auth.ts (createSecureStoreAdapter, resolveAuthRedirect oraz signInWithApple wg AUTH_AND_SECURITY.md Sekcja 3 i 4).
 2. Zbuduj ekran logowania w app/(auth)/login.tsx (wyłącznie szybkie logowanie Apple Sign In oraz Google Sign In z expo-web-browser wg MOBILE_SCREENS_SPEC.md Sekcja 6 – zero formularzy email/hasło).
-3. Zaimplementuj AuthGuard oraz poprawkę dźwięku iOS (Audio.setAudioModeAsync playsInSilentModeIOS: true) w app/_layout.tsx.
-4. Napisz testy apps/mobile/__tests__/auth.test.ts sprawdzające logikę adaptera SecureStore i guardów nawigacji.
+3. Zaimplementuj AuthGuard (wykorzystujący resolveAuthRedirect) oraz poprawkę dźwięku iOS (Audio.setAudioModeAsync playsInSilentModeIOS: true) w app/_layout.tsx.
+4. Napisz testy apps/mobile/__tests__/auth.test.ts sprawdzające createSecureStoreAdapter oraz resolveAuthRedirect.
 5. Uruchom: bun test apps/mobile/__tests__/auth.test.ts.
 BRAMKA: Wszystkie testy zielone. Zakaz modyfikacji wcześniejszych testów.
 ```
 
 ---
 
-### 🟢 PROMPT 6: Odtwarzacz Wideo, Napisy, TTS & Wyszukiwarka YouTube (Etap 6)
+### 🟢 PROMPT 6: Odtwarzacz Wideo (Prędkość 0.25–2.0 co 0.05), Napisy, TTS & Wyszukiwarka z Lupką (Etap 6)
 ```text
-Przeczytaj DESIGN_SYSTEM.md, NAVIGATION_MAP.md, STATE_MANAGEMENT.md, COMPONENT_SPECS.md, DATABASE_AND_COST_OPTIMIZATION.md (Sekcja 1 - expo-speech), EDGE_CASES_AND_ERRORS.md (Sekcja 1-3), MOBILE_SCREENS_SPEC.md (Sekcja 1-2) oraz STAGE_GATES_AND_TESTS.md (Etap 6).
+Przeczytaj DESIGN_SYSTEM.md (w tym Sekcja 1.2 - ikony phosphor-react-native), NAVIGATION_MAP.md, STATE_MANAGEMENT.md, COMPONENT_SPECS.md, DATABASE_AND_COST_OPTIMIZATION.md (Sekcja 1 - expo-speech), EDGE_CASES_AND_ERRORS.md (Sekcja 1-3), MOBILE_SCREENS_SPEC.md (Sekcja 1-2) oraz STAGE_GATES_AND_TESTS.md (Etap 6).
 Zadanie:
-1. W apps/mobile zaimplementuj stores/usePlayerStore.ts (wraz z QUERY_KEYS), lib/speech.ts (playPronunciation z expo-speech) oraz lib/youtube.ts (extractYouTubeVideoId).
-2. Stwórz pasek zakładek app/(tabs)/_layout.tsx (Frosted Glass TabBar z expo-blur), ekran wyszukiwarki app/(tabs)/index.tsx (wyszukiwanie na żywo, kafelki 16:9, auto-detect schowka, CURATED_VIDEOS) oraz ekran odtwarzacza app/(tabs)/player.tsx z react-native-youtube-iframe, WordToken.tsx, SubtitleTrack.tsx (z 200ms debouncingiem kliknięć) i TranslationSheet.tsx.
+1. W apps/mobile zaimplementuj stores/usePlayerStore.ts (wraz z funkcjami findActiveCueIndex, findActiveCue, findActiveWordIndex, clampPlaybackRate, stepPlaybackRate od 0.25 do 2.00 co 0.05 oraz QUERY_KEYS) i lib/speech.ts (playPronunciation z expo-speech).
+2. Stwórz pasek zakładek app/(tabs)/_layout.tsx (Frosted Glass TabBar z expo-blur i ikonami phosphor-react-native: szare weight="regular" -> po kliknięciu/aktywacji weight="fill" z kolorem), ekran wyszukiwarki app/(tabs)/index.tsx (pasek wyszukiwania z lupką MagnifyingGlass a'la YouTube bez wklejania linków/schowka, kafelki 16:9, CURATED_VIDEOS) oraz ekran odtwarzacza app/(tabs)/player.tsx z płynną regulacją prędkości (0.25x - 2.00x co 0.05), WordToken.tsx, SubtitleTrack.tsx (z 200ms debouncingiem kliknięć) i TranslationSheet.tsx.
 3. Zaimplementuj synchronizację czasu (pętla interwałowa 150ms odpytująca playerRef.current.getCurrentTime()), podświetlanie aktywnego słowa (isActiveWord) i auto-scroll. Kliknięcie w słowo pauzuje wideo i otwiera TranslationSheet.
-4. Napisz testy apps/mobile/__tests__/subtitles.test.ts weryfikujące funkcję wyszukiwania aktywnego cue, kalkulację aktywnego słowa oraz wywoływanie pauzy odtwarzacza.
+4. Napisz testy apps/mobile/__tests__/subtitles.test.ts weryfikujące funkcje findActiveCue, findActiveWordIndex, stepPlaybackRate / clampPlaybackRate (zakres 0.25-2.00 krok 0.05) oraz wywoływanie pauzy odtwarzacza w usePlayerStore.openTranslation.
 5. Uruchom: bun test apps/mobile/__tests__/subtitles.test.ts.
 BRAMKA: Potwierdź przejście testów. Brak zmian w zielonych testach.
 ```
@@ -109,13 +108,13 @@ BRAMKA: Potwierdź przejście testów. Brak zmian w zielonych testach.
 
 ### 🟢 PROMPT 7: Krawędziowy Cache R2 First w Aplikacji (Etap 7)
 ```text
-Przeczytaj 03_AI_AND_PROMPTS.md, API_CONTRACT.md oraz STAGE_GATES_AND_TESTS.md (Etap 7).
+Przeczytaj 03_AI_AND_PROMPTS.md (Sekcja 7 - fetchTranslationWithR2Cache), API_CONTRACT.md oraz STAGE_GATES_AND_TESTS.md (Etap 7).
 Zadanie:
-1. W apps/mobile zaimplementuj serwis pobierania tłumaczenia (lib/translation.ts) i podepnij go do TranslationSheet.tsx:
+1. W apps/mobile zaimplementuj serwis pobierania tłumaczenia w lib/translation.ts (funkcja fetchTranslationWithR2Cache z wstrzykiwalnym fetchFn wg 03_AI_AND_PROMPTS.md Sekcja 7) i podepnij go do TranslationSheet.tsx:
    - Oblicz hash: computeTranslationHash(word, sentence, nativeLanguage).
    - Wykonaj bezpośredni GET ${EXPO_PUBLIC_R2_URL}/${hash}.json.
-   - Jeśli HTTP 200: zwróć dane z CDN natychmiast (0 obciążenia backendu!).
-   - Jeśli HTTP 404: wywołaj backend POST /api/v1/translate.
+   - Jeśli HTTP 200: zwróć dane z CDN natychmiast (fromCache: true, 0 obciążenia backendu!).
+   - Jeśli HTTP 404: wywołaj backend POST /api/v1/translate (fromCache: false).
 2. Napisz testy apps/mobile/__tests__/r2-cache.test.ts sprawdzające scenariusz cache hit (brak zapytania do backendu) i cache miss (wywołanie fallbacku).
 3. Uruchom: bun test apps/mobile/__tests__/r2-cache.test.ts.
 BRAMKA: Wszystkie testy zdane w 100%.

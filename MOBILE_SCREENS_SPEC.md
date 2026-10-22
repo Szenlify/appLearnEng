@@ -4,14 +4,14 @@ Dokument zawiera kompletną, produkcyjną specyfikację widoków, komponentów, 
 
 ---
 
-## 1. 🔍 Ekran 1: Odkrywaj & Wyszukiwarka YouTube (`apps/mobile/app/(tabs)/index.tsx`)
+## 1. Ekran 1: Odkrywaj & Wyszukiwarka YouTube (`apps/mobile/app/(tabs)/index.tsx`)
 
-Ekran startowy i wyszukiwarka wideo w stylu natywnej aplikacji YouTube. Użytkownik może wpisać dowolną frazę (np. *„MrBeast”*, *„BBC News”*, *„Cooking”*), aby przeszukać cały katalog YouTube w czasie rzeczywistym, lub przeglądać polecane materiały edukacyjne i historię oglądania.
+Ekran startowy i wyszukiwarka wideo w stylu natywnej aplikacji YouTube. Użytkownik klika w pasek z lupką i wpisuje dowolną frazę (np. *„MrBeast”*, *„BBC News”*, *„Cooking”*), aby przeszukać katalog YouTube w czasie rzeczywistym, lub przegląda polecane materiały edukacyjne i historię oglądania (brak wklejania linków czy detekcji schowka).
 
-### 1.1 Doświadczenie Wyszukiwania w Stylu YouTube (Live Search):
-1. **Pasek Wyszukiwania:**
-   - Pole tekstowe z ikoną `Search`, przyciskiem czyszczenia tekstu `X` oraz przyciskiem wklejania ze schowka.
-   - Gdy użytkownik wpisuje frazę (lub zatwierdza Enterem):
+### 1.1 Doświadczenie Wyszukiwania w Stylu YouTube (Live Search z Lupką):
+1. **Pasek Wyszukiwania (Lupka):**
+   - Pole tekstowe z ikoną lupki `MagnifyingGlass` (`phosphor-react-native`: domyślnie szara `#94A3B8` `weight="regular"`, a po kliknięciu w pole / aktywacji wyszukiwania przechodzi w `weight="fill"` i kolor `#38BDF8`) oraz przyciskiem czyszczenia tekstu `XCircle` (szary `#64748B` `weight="regular"`, po kliknięciu `weight="fill"`).
+   - Gdy użytkownik wpisuje frazę (lub zatwierdza lupką na klawiaturze):
      - Zapytanie `useQuery` wywołuje `GET /api/v1/search?q=${encodeURIComponent(query)}`.
      - Wyniki wyświetlane są jako pionowa lista kafelków 16:9 (dokładnie jak w aplikacji YouTube).
      - Każdy kafelek zawiera: miniaturkę wideo, czas trwania w prawym dolnym rogu (np. `14:20`), badge `[CC] EN`, tytuł filmu oraz nazwę kanału.
@@ -19,8 +19,6 @@ Ekran startowy i wyszukiwarka wideo w stylu natywnej aplikacji YouTube. Użytkow
 2. **Gdy pole wyszukiwania jest puste (Domyślny Dashboard):**
    - **Sekcja "Oglądaj dalej":** Kafelki ostatnio oglądanych filmów z paskiem postępu i liczbą zapisanych słówek (z lokalnego SQLite / TanStack Query).
    - **Sekcja "Polecane wg poziomów CEFR":** Pogrupowane kafelki ze stałej `CURATED_VIDEOS` (A1–C2).
-3. **Auto-Clipboard Detection:**
-   - Jeśli użytkownik skopiował link YouTube poza aplikacją, po otwarciu ekranu pojawia się chmurka: *„Wykryto link YouTube w schowku. Kliknij, aby obejrzeć”*.
 
 ### 1.2 Kod Ekranu Wyszukiwarki i Odkrywania:
 ```typescript
@@ -28,15 +26,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, FlatList, Pressable, Image, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import * as Clipboard from 'expo-clipboard';
-import { Search, X, Clipboard as ClipIcon, Play } from 'lucide-react-native';
-import { extractYouTubeVideoId } from '@/lib/youtube';
+import { MagnifyingGlass, XCircle, PlayCircle } from 'phosphor-react-native';
 import { SearchVideoItem } from '@learneng/shared';
 
 export default function ExploreScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
 
   // Debouncing wpisywania frazy (400ms)
   useEffect(() => {
@@ -51,11 +48,6 @@ export default function ExploreScreen() {
     queryKey: ['youtube_search', debouncedQuery],
     queryFn: async () => {
       if (!debouncedQuery) return null;
-      // Jeśli użytkownik wkleił bezpośredni link URL -> wyciągnij ID i otwórz
-      const directId = extractYouTubeVideoId(debouncedQuery);
-      if (directId) {
-        return { items: [{ id: directId, title: 'Wklejone wideo', channelTitle: '', thumbnailUrl: `https://img.youtube.com/vi/${directId}/hqdefault.jpg` }] };
-      }
       const res = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/api/v1/search?q=${encodeURIComponent(debouncedQuery)}`);
       if (!res.ok) throw new Error('SEARCH_FAILED');
       return res.json();
@@ -67,22 +59,36 @@ export default function ExploreScreen() {
     router.push({ pathname: '/(tabs)/player', params: { videoId } });
   };
 
+  const isLupkaActive = isSearchFocused || searchQuery.length > 0;
+
   return (
     <View className="flex-1 bg-[#0B0F19] pt-12 px-4">
-      {/* 1. Górny pasek wyszukiwania a'la YouTube */}
-      <View className="flex-row items-center bg-[#161F30] rounded-2xl px-3 py-2.5 mb-4 border border-slate-700/60 shadow-lg">
-        <Search size={20} color="#94A3B8" className="mr-2" />
+      {/* 1. Górny pasek wyszukiwania z Lupką a'la YouTube */}
+      <View className="flex-row items-center bg-[#161F30] rounded-2xl px-3.5 py-2.5 mb-4 border border-slate-700/60 shadow-lg">
+        <MagnifyingGlass
+          size={20}
+          color={isLupkaActive ? '#38BDF8' : '#94A3B8'}
+          weight={isLupkaActive ? 'fill' : 'regular'}
+        />
         <TextInput
           value={searchQuery}
           onChangeText={setSearchQuery}
+          onFocus={() => setIsSearchFocused(true)}
+          onBlur={() => setIsSearchFocused(false)}
           placeholder="Szukaj filmów na YouTube (np. MrBeast, TED)..."
           placeholderTextColor="#64748B"
-          className="flex-1 text-white text-base py-1 font-medium"
+          className="flex-1 text-white text-base py-1 ml-2.5 font-medium"
           returnKeyType="search"
         />
         {searchQuery.length > 0 && (
           <Pressable onPress={() => setSearchQuery('')} className="p-1">
-            <X size={18} color="#94A3B8" />
+            {({ pressed }) => (
+              <XCircle
+                size={20}
+                color={pressed ? '#38BDF8' : '#94A3B8'}
+                weight={pressed ? 'fill' : 'regular'}
+              />
+            )}
           </Pressable>
         )}
       </View>
@@ -221,45 +227,48 @@ export const CURATED_VIDEOS: CuratedVideo[] = [
 
 ---
 
-## 2. 🎬 Ekran 2: Odtwarzacz & Napisy (`apps/mobile/app/(tabs)/player.tsx`)
+## 2. Ekran 2: Odtwarzacz & Napisy (`apps/mobile/app/(tabs)/player.tsx`)
 
-Sercowy ekran aplikacji łączący odtwarzacz YouTube (`react-native-youtube-iframe`), synchronizację czasu, przewijany pasek napisów (`SubtitleTrack`) i arkusz tłumaczenia (`TranslationSheet`).
+Sercowy ekran aplikacji łączący odtwarzacz YouTube (`react-native-youtube-iframe`), płynną regulację prędkości od **`0.25x` do `2.00x` co `0.05`**, synchronizację czasu, przewijany pasek napisów (`SubtitleTrack`) i arkusz tłumaczenia (`TranslationSheet`).
 
-### 2.1 Kluczowy Hook Synchronizacji Czasu (Eliminacja Pułapki YouTube):
-`react-native-youtube-iframe` **nie posiada** propa `onTimeUpdate` ani `onProgress`. Synchronizację realizuje pętla interwałowa odpytująca `getCurrentTime()`:
+### 2.1 Kluczowy Hook Synchronizacji Czasu i Płynna Prędkość (`0.25` – `2.00` co `0.05`):
+`react-native-youtube-iframe` **nie posiada** propa `onTimeUpdate` ani `onProgress`. Synchronizację realizuje pętla interwałowa odpytująca `getCurrentTime()`, a prędkość odtwarzania regulowana jest w krokach co `0.05` (`stepPlaybackRate(playbackRate, ±0.05)`):
 
 ```typescript
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import YoutubePlayer, { YoutubeIframeRef } from 'react-native-youtube-iframe';
 import { useLocalSearchParams } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
-import { usePlayerStore } from '@/stores/usePlayerStore';
+import { ArrowCounterClockwise, MinusCircle, PlusCircle, Gauge, WarningCircle } from 'phosphor-react-native';
+import { usePlayerStore, QUERY_KEYS, stepPlaybackRate } from '@/stores/usePlayerStore';
 import { SubtitleTrack } from '@/components/player/SubtitleTrack';
 import { TranslationSheet } from '@/components/sheets/TranslationSheet';
-import { QUERY_KEYS } from '@/stores/usePlayerStore';
+import { LocalFlashcardsRepository } from '@/lib/db/LocalFlashcardsRepository';
+import { FlashcardSyncEngine } from '@/lib/db/FlashcardSyncEngine';
 
 export default function PlayerScreen() {
   const { videoId: paramVideoId } = useLocalSearchParams<{ videoId?: string }>();
   const playerRef = useRef<YoutubeIframeRef>(null);
   
   const videoId = paramVideoId || 'UF8uR6Z6KLc'; // Fallback do Steve Jobs Stanford Speech
+  const currentUserId = 'local_user';
   
   const {
     isPlaying,
     currentTime,
+    playbackRate,
     cues,
     selectedWord,
     selectedSentence,
     isSheetOpen,
     setIsPlaying,
     setCurrentTime,
+    setPlaybackRate,
     setCaptions,
     openTranslation,
     closeTranslation,
   } = usePlayerStore();
-
-  const [playbackRate, setPlaybackRate] = useState<number>(1.0);
 
   // 1. Pętla synchronizacji czasu z YouTube IFrame
   useEffect(() => {
@@ -322,13 +331,15 @@ export default function PlayerScreen() {
     }
   }, [cues, currentTime, setCurrentTime]);
 
-  // Obsługa zmiany prędkości
-  const cyclePlaybackRate = useCallback(async () => {
-    const rates = [0.75, 1.0, 1.25];
-    const nextRate = rates[(rates.indexOf(playbackRate) + 1) % rates.length];
+  // 5. Płynna zmiana prędkości od 0.25x do 2.00x co 0.05
+  const handleAdjustSpeed = useCallback((delta: number) => {
+    const nextRate = stepPlaybackRate(playbackRate, delta);
     setPlaybackRate(nextRate);
-    await playerRef.current?.setPlaybackRate(nextRate);
-  }, [playbackRate]);
+  }, [playbackRate, setPlaybackRate]);
+
+  const handleResetSpeed = useCallback(() => {
+    setPlaybackRate(1.0);
+  }, [setPlaybackRate]);
 
   return (
     <View className="flex-1 bg-[#0B0F19]">
@@ -353,21 +364,65 @@ export default function PlayerScreen() {
         />
       </View>
 
-      {/* 2. Pasek pomocniczy pod wideo: Prędkość & Powtórz zdanie */}
+      {/* 2. Pasek pomocniczy pod wideo: Powtórz zdanie & Prędkość 0.25x - 2.00x (co 0.05) */}
       <View className="flex-row items-center justify-between px-4 py-2 border-b border-slate-800 bg-[#161F30]/60">
         <Pressable
           onPress={handleRepeatSentence}
           className="flex-row items-center px-3 py-1.5 rounded-lg bg-slate-800 active:bg-slate-700"
         >
-          <Text className="text-sky-400 font-semibold text-xs">⏪ Powtórz zdanie</Text>
+          {({ pressed }) => (
+            <>
+              <ArrowCounterClockwise
+                size={16}
+                color={pressed ? '#38BDF8' : '#94A3B8'}
+                weight={pressed ? 'fill' : 'regular'}
+              />
+              <Text className="text-slate-200 font-semibold text-xs ml-1.5">Powtórz zdanie</Text>
+            </>
+          )}
         </Pressable>
 
-        <Pressable
-          onPress={cyclePlaybackRate}
-          className="px-3 py-1.5 rounded-lg bg-slate-800 active:bg-slate-700"
-        >
-          <Text className="text-slate-200 font-bold text-xs">{playbackRate}x</Text>
-        </Pressable>
+        {/* Regulator prędkości 0.25x - 2.00x co 0.05 */}
+        <View className="flex-row items-center bg-slate-800 rounded-lg px-2 py-1 space-x-2">
+          <Pressable
+            onPress={() => handleAdjustSpeed(-0.05)}
+            disabled={playbackRate <= 0.25}
+            className="p-1"
+          >
+            {({ pressed }) => (
+              <MinusCircle
+                size={18}
+                color={pressed ? '#38BDF8' : '#94A3B8'}
+                weight={pressed ? 'fill' : 'regular'}
+              />
+            )}
+          </Pressable>
+
+          <Pressable onPress={handleResetSpeed} className="flex-row items-center px-1.5">
+            <Gauge
+              size={15}
+              color={playbackRate !== 1.0 ? '#38BDF8' : '#94A3B8'}
+              weight={playbackRate !== 1.0 ? 'fill' : 'regular'}
+            />
+            <Text className="text-slate-200 font-mono font-bold text-xs ml-1">
+              {playbackRate.toFixed(2)}x
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => handleAdjustSpeed(0.05)}
+            disabled={playbackRate >= 2.0}
+            className="p-1"
+          >
+            {({ pressed }) => (
+              <PlusCircle
+                size={18}
+                color={pressed ? '#38BDF8' : '#94A3B8'}
+                weight={pressed ? 'fill' : 'regular'}
+              />
+            )}
+          </Pressable>
+        </View>
       </View>
 
       {/* 3. Pasek napisów lub baner błędu */}
@@ -379,9 +434,10 @@ export default function PlayerScreen() {
           </View>
         ) : error?.message === 'NO_CAPTIONS_AVAILABLE' ? (
           <View className="p-6 m-4 rounded-2xl bg-amber-950/40 border border-amber-600/30 items-center">
-            <Text className="text-amber-400 font-bold text-base mb-1">Ten film nie posiada angielskich napisów</Text>
+            <WarningCircle size={28} color="#F59E0B" weight="fill" />
+            <Text className="text-amber-400 font-bold text-base mt-2 mb-1">Ten film nie posiada angielskich napisów</Text>
             <Text className="text-slate-400 text-xs text-center mb-4">
-              Wybierz jeden z polecanych materiałów do nauki z poziomu zakładki Odkrywaj.
+              Wyszukaj inny film za pomocą lupki lub wybierz jeden z polecanych materiałów w zakładce Odkrywaj.
             </Text>
           </View>
         ) : (
@@ -436,31 +492,31 @@ export default function PlayerScreen() {
 
 ---
 
-## 3. 🃏 Ekran 3: Fiszki Tinder-Deck (`apps/mobile/app/(tabs)/flashcards.tsx`)
+## 3. Ekran 3: Fiszki Tinder-Deck (`apps/mobile/app/(tabs)/flashcards.tsx`)
 
-Ekran powtórek fiszek ze stosem kart w 4 kierunkach gestu, obrotem 3D oraz obsługą pustego stanu.
+Ekran powtórek fiszek ze stosem kart w 4 kierunkach gestu, obrotem 3D oraz obsługą pustego stanu (wszystkie ikony z `phosphor-react-native`: domyślnie szare `weight="regular"`, po kliknięciu/aktywacji `weight="fill"` z kolorem).
 
 ### 3.1 Pasek Stanu & Kontrolki Dokujące:
 - **Góra ekranu:**
-  - Płomień streaku: `🔥 7 dni z rzędu`.
+  - Ikona `Fire` (`phosphor-react-native`: szara `#94A3B8` `weight="regular"`, po kliknięciu/aktywnym streaku `weight="fill"` `#F59E0B`): `7 dni z rzędu`.
   - Licznik postępu: `Karta 4 z 18`.
   - Pasek postępu (Progress Bar) z animowanym kolorem indygo.
 - **Środek:**
   - Kontener stosu kart `TinderCard` (wyświetla Karta 0, Karta 1 pod spodem i Karta 2).
-- **Dół ekranu (Manual Dock Buttons):**
-  - Dla użytkowników, którzy wolą klikać zamiast swipować:
-    - 🔴 `[ Powtórz ]` (Left)
-    - 🟠 `[ Trudne ]` (Down)
-    - 🟢 `[ Dobrze ]` (Right)
-    - 🔵 `[ Łatwe ]` (Up)
-    - ↩️ `[ Cofnij ]` (`undoLastSwipe()`)
+- **Dół ekranu (Manual Dock Buttons z ikonami `phosphor-react-native`):**
+  - Dla użytkowników, którzy wolą klikać zamiast swipować (każdy przycisk ma szarą ikonę `weight="regular"`, która po kliknięciu przechodzi w `weight="fill"` w swoim kolorze):
+    - `ArrowLeft` `[ Powtórz ]` (Left — `#EF4444`)
+    - `ArrowDown` `[ Trudne ]` (Down — `#F59E0B`)
+    - `ArrowRight` `[ Dobrze ]` (Right — `#10B981`)
+    - `ArrowUp` `[ Łatwe ]` (Up — `#38BDF8`)
+    - `ArrowUUpLeft` `[ Cofnij ]` (`undoLastSwipe()`)
 
 ### 3.2 Ekran Ukończenia Sesji (Completed / Empty State):
 Gdy `currentIndex >= deck.length` lub gdy nie ma fiszek do powtórki:
 ```tsx
 <View className="flex-1 items-center justify-center px-8 bg-[#0B0F19]">
   <View className="w-24 h-24 rounded-full bg-emerald-500/10 items-center justify-center mb-6 border border-emerald-500/30">
-    <Text className="text-5xl">🎉</Text>
+    <Trophy size={48} color="#10B981" weight="fill" />
   </View>
   <Text className="text-2xl font-bold text-white text-center mb-2">
     Wszystkie powtórki ukończone!
@@ -479,19 +535,19 @@ Gdy `currentIndex >= deck.length` lub gdy nie ma fiszek do powtórki:
 
 ---
 
-## 4. 👤 Ekran 4: Profil i Ustawienia (`apps/mobile/app/(tabs)/profile.tsx`)
+## 4. Ekran 4: Profil i Ustawienia (`apps/mobile/app/(tabs)/profile.tsx`)
 
-Zarządzanie kontem, poziomem CEFR, językiem ojczystym i subskrypcją Stripe.
+Zarządzanie kontem, poziomem CEFR, językiem ojczystym i subskrypcją Stripe (wszystkie ikony z `phosphor-react-native` — domyślnie szare `#94A3B8` `weight="regular"`, po kliknięciu `weight="fill"` z kolorem).
 
 ### 4.1 Struktura Sekcji:
 1. **Nagłówek Użytkownika:**
    - Awatar (inicjały lub zdjęcie Google/Apple).
    - Email użytkownika.
    - Pigułka poziomu: `B2 Intermediate`.
-2. **Kafle Statystyk Nauki (3 Kolumny):**
-   - 📖 **142** poznanych słówek.
-   - 🔥 **7 dni** ciągłego streaku.
-   - ⏱️ **4.2h** spędzonych na nauce.
+2. **Kafle Statystyk Nauki (3 Kolumny z ikonami `phosphor-react-native`):**
+   - `BookOpen` **142** poznanych słówek.
+   - `Fire` **7 dni** ciągłego streaku.
+   - `Clock` **4.2h** spędzonych na nauce.
 3. **Karta Statusu Subskrypcji:**
    - Jeśli plan darmowy:
      - Wyświetla: *„Plan: Free (Zostało 15/50 darmowych zapytań)”*.
@@ -507,9 +563,9 @@ Zarządzanie kontem, poziomem CEFR, językiem ojczystym i subskrypcją Stripe.
 
 ---
 
-## 5. 💎 Ekran 5: Modal Paywalla (`apps/mobile/app/(modals)/paywall.tsx`)
+## 5. Ekran 5: Modal Paywalla (`apps/mobile/app/(modals)/paywall.tsx`)
 
-Prezentowany jako modal wznoszący (`presentation: 'modal'`).
+Prezentowany jako modal wznoszący (`presentation: 'modal'`) z ikoną `Crown` (`phosphor-react-native`).
 
 ### 5.1 Elementy Widoku:
 1. **Nagłówek Hero:**
@@ -529,16 +585,17 @@ Prezentowany jako modal wznoszący (`presentation: 'modal'`).
 
 ---
 
-## 6. 🔐 Ekran 6: Logowanie Społecznościowe (`apps/mobile/app/(auth)/login.tsx`)
+## 6. Ekran 6: Logowanie Społecznościowe (`apps/mobile/app/(auth)/login.tsx`)
 
 Aplikacja całkowicie eliminuje tradycyjne logowanie hasłem/e-mailem. Dostępne są wyłącznie natywne, bezpieczne przyciski **Sign in with Apple** i **Sign in with Google**.
 
 ### 6.1 Implementacja Ekranu Logowania:
 ```typescript
 import React from 'react';
-import { View, Text, Pressable, Image, Platform } from 'react-native';
+import { View, Text, Pressable, Platform } from 'react-native';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from 'expo-web-browser';
+import { PlayCircle } from 'phosphor-react-native';
 import { signInWithApple } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 
@@ -585,7 +642,7 @@ export default function LoginScreen() {
       {/* 1. Hero & Branding */}
       <View className="items-center mt-12">
         <View className="w-20 h-20 rounded-3xl bg-indigo-600/20 border border-indigo-500/40 items-center justify-center mb-6">
-          <Text className="text-4xl">🎬</Text>
+          <PlayCircle size={44} color="#6366F1" weight="fill" />
         </View>
         <Text className="text-3xl font-extrabold text-white text-center tracking-tight mb-2">
           LearnEng

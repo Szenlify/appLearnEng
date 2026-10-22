@@ -76,3 +76,96 @@ Nie stosujemy żadnych alternatywnych technologii. Cały projekt jest zdefiniowa
          | 7. Wyświetlenie Bottom Sheet z tłumaczeniem
          | 8. Zapis do fiszek: natychmiastowy zapis do lokalnego `expo-sqlite` + zbiorcza synchronizacja (Batch Upsert) do Supabase PostgreSQL (`public.user_flashcards`)
 ```
+
+---
+
+## 3. Główny Plik Serwera Backendu Hono (`apps/backend/src/index.ts`)
+
+Wszystkie endpointy backendu są spięte w jednej instancji `app = new Hono()`, która jest eksportowana zarówno dla serwera Bun, jak i dla testów integracyjnych (`app.request(...)` w `captions.test.ts`, `search.test.ts`, `translate.test.ts`, `stripe.test.ts`):
+
+```typescript
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { computeTranslationHash, TranslateRequestBodySchema, TranslationResponse } from '@learneng/shared';
+import { YouTubeCaptionsService } from './services/captions.service';
+import { YouTubeSearchService } from './services/search.service';
+import { generateContextualTranslation } from './services/gemini.service';
+import { R2StorageService } from './services/r2.service';
+import { createSubscriptionCheckout, handleStripeWebhook } from './routes/stripe.routes';
+
+export const app = new Hono();
+
+app.use('/*', cors());
+
+const captionsService = new YouTubeCaptionsService();
+const searchService = new YouTubeSearchService();
+const r2Service = new R2StorageService();
+
+// 1. Pobieranie napisów YouTube
+app.get('/api/v1/captions', async (c) => {
+  const videoId = c.req.query('videoId');
+  if (!videoId) return c.json({ error: 'Missing videoId' }, 400);
+
+  try {
+    const result = await captionsService.getCaptions(videoId);
+    return c.json(result, 200);
+  } catch (err: any) {
+    if (err.message?.includes('NO_CAPTIONS_AVAILABLE')) {
+      return c.json({ code: 'NO_CAPTIONS_AVAILABLE', message: 'No English transcript found' }, 422);
+    }
+    return c.json({ code: 'CAPTIONS_ERROR', message: err.message }, 500);
+  }
+});
+
+// 2. Wyszukiwarka wideo YouTube (z 24h cache)
+app.get('/api/v1/search', async (c) => {
+  const q = c.req.query('q') || '';
+  if (!q.trim()) return c.json({ query: '', items: [], cached: false }, 200);
+
+  const result = await searchService.search(q, process.env.YOUTUBE_API_KEY);
+  return c.json(result, 200);
+});
+
+// 3. Fallback Tłumaczenia AI (Gemini 2.5 Lite -> Upload do Cloudflare R2 Root)
+app.post('/api/v1/translate', async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const parsed = TranslateRequestBodySchema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: 'Invalid request body', details: parsed.error.flatten() }, 400);
+  }
+
+  const { word, sentence, targetLang, videoId } = parsed.data;
+  const hash = computeTranslationHash(word, sentence, targetLang);
+
+  const aiResult = await generateContextualTranslation(word, sentence, targetLang);
+  const fullPayload: TranslationResponse = {
+    hash,
+    target_language: targetLang,
+    ...aiResult,
+    created_at: new Date().toISOString(),
+  };
+
+  await r2Service.saveTranslationToRoot(hash, fullPayload);
+  return c.json(fullPayload, 200);
+});
+
+// 4. Tworzenie sesji Stripe Checkout (3-Day Free Trial + Multi-Currency)
+app.post('/api/v1/stripe/checkout', async (c) => {
+  const body = await c.req.json();
+  const session = await createSubscriptionCheckout(body);
+  return c.json({ url: session.url, id: session.id }, 200);
+});
+
+// 5. Odbiór Webhooków Stripe (Bun constructEventAsync)
+app.post('/api/v1/stripe/webhook', async (c) => {
+  const sig = c.req.header('stripe-signature') || '';
+  const rawBody = await c.req.text();
+  const result = await handleStripeWebhook(rawBody, sig);
+  return c.json(result, 200);
+});
+
+export default {
+  port: Number(process.env.PORT || 3000),
+  fetch: app.fetch,
+};
+```

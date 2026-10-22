@@ -27,23 +27,91 @@ app/
 
 ---
 
-## 2. Tab Bar Design (Frosted Glass / Dark Blur)
+## 2. Tab Bar Design (Frosted Glass / Dark Blur — `apps/mobile/app/(tabs)/_layout.tsx`)
 
-The bottom navigation bar uses `expo-blur` with dark vibrancy:
-- Background: `rgba(15, 23, 42, 0.75)` (Deep slate with 20px blur filter).
-- Active Tab Color: `#38BDF8` (Sky Blue glow).
-- Inactive Tab Color: `#64748B` (Slate 500).
-- Icon set: `lucide-react-native` (`Compass`, `PlaySquare`, `Layers`, `User`).
+The bottom navigation bar uses `expo-blur` with dark vibrancy and **`phosphor-react-native`** icons:
+- Background: `rgba(15, 23, 42, 0.85)` (Deep slate with blur filter).
+- Inactive Tab Icon: `#64748B` (Slate 500) with `weight="regular"`.
+- Active / Clicked Tab Icon: `#38BDF8` (Sky Blue) with `weight="fill"`.
+- Icon set: `phosphor-react-native` (`Compass`, `PlayCircle`, `Cards`, `UserCircle`).
+
+```tsx
+import React from 'react';
+import { Tabs } from 'expo-router';
+import { BlurView } from 'expo-blur';
+import { StyleSheet } from 'react-native';
+import { Compass, PlayCircle, Cards, UserCircle } from 'phosphor-react-native';
+
+export default function TabsLayout() {
+  return (
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: '#38BDF8',
+        tabBarInactiveTintColor: '#64748B',
+        tabBarStyle: {
+          position: 'absolute',
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          borderTopColor: 'rgba(51, 65, 85, 0.4)',
+          height: 64,
+          paddingBottom: 8,
+          paddingTop: 6,
+        },
+        tabBarBackground: () => (
+          <BlurView tint="dark" intensity={40} style={StyleSheet.absoluteFill} />
+        ),
+      }}
+    >
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Odkrywaj',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Compass color={color} size={size} weight={focused ? 'fill' : 'regular'} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="player"
+        options={{
+          title: 'Odtwarzacz',
+          tabBarIcon: ({ color, size, focused }) => (
+            <PlayCircle color={color} size={size} weight={focused ? 'fill' : 'regular'} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="flashcards"
+        options={{
+          title: 'Fiszki',
+          tabBarIcon: ({ color, size, focused }) => (
+            <Cards color={color} size={size} weight={focused ? 'fill' : 'regular'} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profil',
+          tabBarIcon: ({ color, size, focused }) => (
+            <UserCircle color={color} size={size} weight={focused ? 'fill' : 'regular'} />
+          ),
+        }}
+      />
+    </Tabs>
+  );
+}
+```
 
 ---
 
 ## 3. Screen Descriptions & Primary UX Flows
 
-### 3.1 🔍 Screen 1: Odkrywaj & Wyszukiwarka YouTube (`(tabs)/index.tsx`)
-- **Górny pasek wyszukiwania (Live YouTube Search):**
-  - Użytkownik wpisuje dowolną frazę (np. *„MrBeast”*, *„BBC News”*, *„Joe Rogan”*) lub wkleja link.
+### 3.1 Screen 1: Odkrywaj & Wyszukiwarka YouTube (`(tabs)/index.tsx`)
+- **Górny pasek wyszukiwania z Lupką (Live YouTube Search):**
+  - Pasek wyszukiwania z ikoną lupki `MagnifyingGlass` (`phosphor-react-native`: domyślnie szara `#94A3B8` `weight="regular"`, po kliknięciu/wpisaniu frazy `weight="fill"` `#38BDF8`).
+  - Brak wklejania linków i detekcji schowka — użytkownik szuka filmów identycznie jak w natywnej aplikacji YouTube (wpisując np. *„MrBeast”*, *„BBC News”*, *„Joe Rogan”*).
   - Wyszukiwarka zwraca listę filmów prosto z YouTube wewnątrz aplikacji z miniaturkami HD, tytułami i długością.
-  - Automatyczne wykrywanie linku ze schowka systemowego (`Clipboard.getStringAsync()`).
 - **Gdy brak zapytania (Domyślny widok główny):**
   - **Sekcja "Oglądaj dalej":** Kafelki ostatnio oglądanych filmów z paskiem postępu i liczbą zapisanych słówek.
   - **Sekcja "Kategorie & Poziomy CEFR":**
@@ -52,11 +120,14 @@ The bottom navigation bar uses `expo-blur` with dark vibrancy:
     - C1–C2: debaty, stand-up, przemówienia.
 - **Kliknięcie kafelka:** Natychmiastowe przejście do `/(tabs)/player?videoId={id}` z synchronizacją napisów.
 
-### 3.2 🎬 Screen 2: Odtwarzacz & Napisy (`(tabs)/player.tsx`)
+### 3.2 Screen 2: Odtwarzacz & Napisy (`(tabs)/player.tsx`)
 - Wideo YouTube osadzone w formacie 16:9 (`react-native-youtube-iframe`).
-- Poniżej wideo: przewijany pasek napisów z automatycznym wyśrodkowaniem na aktualnie wymawianym zdaniu.
+- Pasek narzędzi pod wideo:
+  - Przycisk "Powtórz zdanie" (`ArrowCounterClockwise`).
+  - Płynny regulator prędkości wideo od **`0.25x` do `2.00x` stopniowo co `0.05`** (`MinusCircle`, `Gauge`, `PlusCircle`).
+- Poniżej: przewijany pasek napisów z automatycznym wyśrodkowaniem na aktualnie wymawianym zdaniu.
 - Kliknięcie słowa: automatyczna pauza wideo i wysunięcie `TranslationSheet` z tłumaczeniem.
-- Dwa przyciski zapisu: *"💾 Zapisz słówko"* oraz *"📝 Zapisz całe zdanie"*.
+- Dwa przyciski zapisu z ikonami `BookmarkSimple` oraz `NotePencil`: *"Zapisz słówko"* oraz *"Zapisz całe zdanie"*.
 
 ### 3.3 🃏 Screen 3: Fiszki Tinder-Deck (`(tabs)/flashcards.tsx`)
 - Stos 3 kart z animacją `react-native-reanimated`.

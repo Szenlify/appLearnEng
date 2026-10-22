@@ -97,13 +97,13 @@ Nie wolno zaczynać kolejnego etapu, dopóki etap bieżący nie zostanie przetes
 
 ---
 
-### 🟢 ETAP 6: Integracja Odtwarzacza i Synchronizacja Napisów
-* **Zakres prac:** Komponent `SubtitleTrack` i podświetlanie aktywnego słowa w czasie rzeczywistym.
+### 🟢 ETAP 6: Integracja Odtwarzacza, Regulacja Prędkości (0.25–2.0 co 0.05) i Synchronizacja Napisów
+* **Zakres prac:** Komponent `SubtitleTrack`, podświetlanie aktywnego słowa w czasie rzeczywistym, płynna regulacja prędkości `0.25x` – `2.00x` co `0.05` (`clampPlaybackRate`, `stepPlaybackRate`) oraz ikony `phosphor-react-native` (domyślnie szare `weight="regular"`, po kliknięciu `weight="fill"` z kolorem).
 * **Pliki testowe:** `apps/mobile/__tests__/subtitles.test.ts`
 * **Wymagane testy:**
   1. Funkcja wyszukiwania aktywnego cue (`findActiveCue(time, cues)`) zwraca poprawny segment dla danego czasu.
   2. Kliknięcie w słowo pauzuje odtwarzacz i przekazuje token do modala.
-  3. Formatowanie czasu wideo i kalkulacja auto-scrolla.
+  3. Regulacja prędkości `stepPlaybackRate` oraz `clampPlaybackRate`: zmiana kroku dokładnie co `0.05` w granicach od `0.25` do `2.00` (bez błędów zaokrągleń zmiennoprzecinkowych).
 * **Komenda bramki:** `bun test apps/mobile/__tests__/subtitles.test.ts`
 
 ---

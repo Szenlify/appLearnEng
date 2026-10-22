@@ -23,12 +23,45 @@ Lokalizacja: `apps/mobile/stores/usePlayerStore.ts`
 import { create } from 'zustand';
 import { SubtitleCue } from '@learneng/shared';
 
+/**
+ * Pure helper functions exported for SubtitleTrack and unit tests (subtitles.test.ts)
+ */
+export function findActiveCueIndex(time: number, cues: SubtitleCue[]): number {
+  return cues.findIndex((c) => time >= c.start && time <= c.end);
+}
+
+export function findActiveCue(time: number, cues: SubtitleCue[]): SubtitleCue | null {
+  const idx = findActiveCueIndex(time, cues);
+  return idx >= 0 ? cues[idx] : null;
+}
+
+export function findActiveWordIndex(time: number, cue: SubtitleCue): number {
+  if (!cue.tokens || cue.tokens.length === 0) return -1;
+  if (time < cue.start || time > cue.end) return -1;
+  const progress = Math.min(0.999, Math.max(0, (time - cue.start) / Math.max(cue.duration, 0.1)));
+  return Math.floor(progress * cue.tokens.length);
+}
+
+/**
+ * Clamps playback speed between 0.25x and 2.00x in exact increments of 0.05
+ */
+export function clampPlaybackRate(rate: number): number {
+  const clamped = Math.min(2.0, Math.max(0.25, rate));
+  const stepped = Math.round(clamped / 0.05) * 0.05;
+  return Number(stepped.toFixed(2));
+}
+
+export function stepPlaybackRate(current: number, delta: number = 0.05): number {
+  return clampPlaybackRate(current + delta);
+}
+
 interface PlayerState {
   // Video playback
   videoId: string | null;
   isPlaying: boolean;
   currentTime: number;
   duration: number;
+  playbackRate: number;        // 0.25 to 2.00 step 0.05 (default 1.0)
   
   // Subtitle synchronization
   cues: SubtitleCue[];
@@ -44,6 +77,7 @@ interface PlayerState {
   setIsPlaying: (playing: boolean) => void;
   setCurrentTime: (time: number) => void;
   setDuration: (duration: number) => void;
+  setPlaybackRate: (rate: number) => void;
   setCaptions: (cues: SubtitleCue[]) => void;
   openTranslation: (word: string, sentence: string) => void;
   closeTranslation: () => void;
@@ -54,6 +88,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isPlaying: false,
   currentTime: 0,
   duration: 0,
+  playbackRate: 1.0,
   cues: [],
   activeCueIndex: -1,
   selectedWord: null,
@@ -62,6 +97,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   setVideoId: (id) => set({ videoId: id, currentTime: 0, activeCueIndex: -1 }),
   setIsPlaying: (playing) => set({ isPlaying: playing }),
+  setPlaybackRate: (rate) => set({ playbackRate: clampPlaybackRate(rate) }),
   
   setCurrentTime: (time) => {
     const { cues, activeCueIndex } = get();

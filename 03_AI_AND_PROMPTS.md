@@ -190,3 +190,64 @@ export class R2StorageService {
   }
 }
 ```
+
+---
+
+## 7. Klient R2-First w Aplikacji Mobilnej (`apps/mobile/lib/translation.ts`)
+
+Aplikacja mobilna **zawsze** najpierw odpytuje bezpośrednio publiczny CDN Cloudflare R2 (`GET ${EXPO_PUBLIC_R2_URL}/${hash}.json`), a dopiero przy błędzie `404` uderza do `POST /api/v1/translate`. Parametr `fetchFn` pozwala na bezproblemowe mockowanie `fetch` w testach jednostkowych Etapu 7 (`r2-cache.test.ts`):
+
+```typescript
+import { computeTranslationHash, TranslationResponse } from '@learneng/shared';
+
+export interface FetchTranslationParams {
+  word: string;
+  sentence: string;
+  targetLang?: string;
+  videoId?: string;
+  r2BaseUrl?: string;
+  apiBaseUrl?: string;
+  fetchFn?: typeof fetch;
+}
+
+export async function fetchTranslationWithR2Cache({
+  word,
+  sentence,
+  targetLang = 'pl',
+  videoId,
+  r2BaseUrl = process.env.EXPO_PUBLIC_R2_URL || 'https://cache.applearneng.com',
+  apiBaseUrl = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000',
+  fetchFn = fetch,
+}: FetchTranslationParams): Promise<{ data: TranslationResponse; fromCache: boolean }> {
+  const hash = computeTranslationHash(word, sentence, targetLang);
+  const r2Url = `${r2BaseUrl.replace(/\/$/, '')}/${hash}.json`;
+
+  // 1. KROK A: Bezpośredni GET do publicznego bucketu Cloudflare R2
+  const r2Response = await fetchFn(r2Url, {
+    method: 'GET',
+    headers: { Accept: 'application/json' },
+  });
+
+  if (r2Response.ok) {
+    const cachedData = (await r2Response.json()) as TranslationResponse;
+    return { data: cachedData, fromCache: true };
+  }
+
+  // 2. KROK B (Fallback przy HTTP 404): Wywołanie backendu POST /api/v1/translate
+  const fallbackResponse = await fetchFn(`${apiBaseUrl.replace(/\/$/, '')}/api/v1/translate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ word, sentence, targetLang, videoId }),
+  });
+
+  if (!fallbackResponse.ok) {
+    if (fallbackResponse.status === 429) {
+      throw new Error('QUOTA_EXCEEDED');
+    }
+    throw new Error(`TRANSLATION_FAILED_${fallbackResponse.status}`);
+  }
+
+  const freshData = (await fallbackResponse.json()) as TranslationResponse;
+  return { data: freshData, fromCache: false };
+}
+```

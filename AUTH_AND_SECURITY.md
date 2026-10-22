@@ -86,9 +86,46 @@ export async function signInWithApple() {
 
 ---
 
-## 4. Protected Routes & Session Guard in Expo Router
+## 4. Protected Routes & Session Guard in Expo Router (`apps/mobile/lib/auth.ts` & `apps/mobile/app/_layout.tsx`)
+
+Aby logika `AuthGuard` oraz adaptera `SecureStore` mogła być w 100% przetestowana w `bun test apps/mobile/__tests__/auth.test.ts` (bez konieczności uruchamiania symulatora iOS/Android), w `apps/mobile/lib/auth.ts` eksportujemy czyste funkcje:
+
+```typescript
+export interface KeyValueStore {
+  getItemAsync: (key: string) => Promise<string | null>;
+  setItemAsync: (key: string, value: string) => Promise<void>;
+  deleteItemAsync: (key: string) => Promise<void>;
+}
+
+export function createSecureStoreAdapter(store: KeyValueStore) {
+  return {
+    getItem: (key: string) => store.getItemAsync(key),
+    setItem: (key: string, value: string) => store.setItemAsync(key, value),
+    removeItem: (key: string) => store.deleteItemAsync(key),
+  };
+}
+
+/**
+ * Pure navigation guard decision function:
+ * - Unauthenticated user outside (auth) -> redirect to '/(auth)/login'
+ * - Authenticated user inside (auth) -> redirect to '/(tabs)'
+ * - Otherwise -> null (allow current route)
+ */
+export function resolveAuthRedirect(
+  isAuthenticated: boolean,
+  rootSegment?: string
+): '/(auth)/login' | '/(tabs)' | null {
+  const inAuthGroup = rootSegment === '(auth)';
+  if (!isAuthenticated && !inAuthGroup) {
+    return '/(auth)/login';
+  }
+  if (isAuthenticated && inAuthGroup) {
+    return '/(tabs)';
+  }
+  return null;
+}
+```
 
 In `apps/mobile/app/_layout.tsx`:
 - Listen to `supabase.auth.onAuthStateChange`.
-- If user is not authenticated -> redirect to `/(auth)/login`.
-- If user is authenticated -> mount `/(tabs)` root layout.
+- Call `resolveAuthRedirect(Boolean(session), segments[0])` and execute `router.replace(target)` when non-null.

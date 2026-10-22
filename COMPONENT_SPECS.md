@@ -80,10 +80,11 @@ interface TranslationSheetProps {
 }
 ```
 
-### Sekcje wewnątrz Arkusza (Od Góry do Dołu):
+### Sekcje wewnątrz Arkusza (Od Góry do Dołu) — Ikony `phosphor-react-native`:
+Wszystkie ikony w arkuszu są domyślnie szare (`color="#94A3B8"`, `weight="regular"`), a po kliknięciu / aktywacji przechodzą w stan `weight="fill"` z kolorem akcentu:
 1. **Nagłówek:**
    - Wyraz (`text-2xl font-bold text-white`).
-   - Przycisk wymowy `🔊` wywołujący `playPronunciation(word)`.
+   - Przycisk wymowy `SpeakerHigh` (domyślnie `color="#94A3B8" weight="regular"`, po kliknięciu `color="#38BDF8" weight="fill"`) wywołujący `playPronunciation(word)`.
    - Zapis IPA (`text-sm font-mono text-cyan-400`).
    - Pigułka części mowy (np. `phrasal verb`).
 2. **Sekcja 1: Prosta Definicja (`simple_definition`):**
@@ -92,13 +93,13 @@ interface TranslationSheetProps {
 3. **Sekcja 2: Tłumaczenie Kontekstowe:**
    - Znaczenie wyrazu w tym zdaniu (`text-emerald-400 font-semibold text-lg`).
    - Pełne tłumaczenie zdania z filmu.
-4. **Sekcja 3: Akordeon "💡 Explain in context":**
-   - Rozwijany blok (`Pressable` ze stanem `isExpanded`).
+4. **Sekcja 3: Akordeon "Explain in context":**
+   - Rozwijany blok (`Pressable` ze stanem `isExpanded`) z ikoną `Lightbulb` (gdy `isExpanded === false`: `color="#94A3B8" weight="regular"`; gdy `isExpanded === true`: `color="#FACC15" weight="fill"`).
    - Szczegółowe omówienie kontekstu kulturowego / emocjonalnego / slangu.
-5. **Stopka z Przyciskami (Zapis z Haptyką):**
+5. **Stopka z Przyciskami (Zapis z Haptyką i Fill Color):**
    - Po zapisaniu słówka lub zdania wywoływane jest `Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)`.
-   - Przycisk 1: `💾 Zapisz słówko` (`bg-indigo-600 active:bg-indigo-700 text-white py-3.5 rounded-xl font-semibold`).
-   - Przycisk 2: `📝 Zapisz całe zdanie` (`bg-slate-700 active:bg-slate-600 text-slate-200 py-3.5 rounded-xl font-semibold`).
+   - Przycisk 1: `Zapisz słówko` z ikoną `BookmarkSimple` (domyślnie `color="#94A3B8" weight="regular"`, po kliknięciu/zapisaniu `color="#38BDF8" weight="fill"`).
+   - Przycisk 2: `Zapisz całe zdanie` z ikoną `NotePencil` (domyślnie `color="#94A3B8" weight="regular"`, po kliknięciu/zapisaniu `color="#10B981" weight="fill"`).
 
 ---
 

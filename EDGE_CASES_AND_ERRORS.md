@@ -7,35 +7,27 @@ Ten dokument opisuje wszystkie scenariusze brzegowe (edge cases), błędy siecio
 ## 1. Wideo YouTube bez Angielskich Napisów (`NO_CAPTIONS_AVAILABLE`)
 
 ### Problem:
-Użytkownik wkleja link do filmu, który nie posiada żadnych ścieżek transkrypcji (ani manualnych, ani automatycznych `a.en`).
+Użytkownik wybiera z wyszukiwarki film, który nie posiada żadnych ścieżek transkrypcji (ani manualnych, ani automatycznych `a.en`).
 
 ### Obsługa w UI:
 1. Backend zwraca kod błędu: `{ code: 'NO_CAPTIONS_AVAILABLE', message: 'No English transcript found' }` z kodem HTTP 422.
 2. Aplikacja mobilna **NIE wyświetla pustego ekranu ani błędu technicznego**.
 3. Poniżej wideo pojawia się estetyczny, zaokrąglony baner:
-   - Ikona: `AlertCircle` w kolorze bursztynowym (`#F59E0B`).
+   - Ikona: `WarningCircle` (`phosphor-react-native`, `weight="fill"`, kolor `#F59E0B`).
    - Tytuł: *"Ten film nie posiada angielskich napisów"*
-   - Podtytuł: *"Wybierz jeden z polecanych materiałów do nauki poniżej lub wklej inny film:"*
+   - Podtytuł: *"Wyszukaj inny materiał za pomocą lupki lub wybierz jeden z polecanych filmów do nauki poniżej:"*
    - Wyświetlane są 3 rekomendowane kafelki z gotowymi filmami z YouTube (np. TED-Ed, wywiad z BBC, podcast naukowy).
 
 ---
 
-## 2. Błędny, Prywatny lub Usunięty Link YouTube
+## 2. Wideo Zablokowane do Osadzania (Embed Restricted) lub Brak Wyników Wyszukiwania
 
 ### Problem:
-Użytkownik wpisuje niepoprawny ciąg znaków lub link do wideo z ograniczeniem wiekowym / prywatnego.
+Autor filmu na YouTube zablokował możliwość odtwarzania w zewnętrznych aplikacjach (błąd IFrame `101` lub `150`) lub wyszukiwana fraza nie zwróciła wyników.
 
 ### Obsługa:
-1. **Walidacja po stronie klienta (Regex):**
-   ```typescript
-   export function extractYouTubeVideoId(url: string): string | null {
-     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-     const match = url.trim().match(regExp);
-     return (match && match[2].length === 11) ? match[2] : null;
-   }
-   ```
-2. Jeśli regex nie pasuje -> pole wejściowe podświetla się na czerwono z komunikatem: *"Wklej prawidłowy link do filmu z YouTube (np. https://youtu.be/...)"*.
-3. Jeśli odtwarzacz YouTube IFrame zwróci zdarzenie `onError(101)` lub `onError(150)` (wideo zablokowane do osadzania przez autora) -> aplikacja wyświetla przycisk: *"Otwórz ten film w aplikacji YouTube i wypróbuj inny materiał w LearnEng"*.
+1. Jeśli odtwarzacz YouTube IFrame zwróci zdarzenie `onError(101)` lub `onError(150)` (wideo zablokowane do osadzania przez autora) -> aplikacja wyświetla czytelny komunikat z ikoną `WarningCircle` (`phosphor-react-native`) oraz przycisk powrotu do wyszukiwarki: *"Autor tego filmu wyłączył odtwarzanie poza YouTube. Wybierz inny materiał z wyszukiwarki."*
+2. Jeśli zapytanie w wyszukiwarce zwróci pustą tablicę `items: []` -> wyświetlany jest stan pusty z szarą ikoną `MagnifyingGlass` (`color="#64748B"`, `weight="regular"`) i podpowiedzią popularnych fraz edukacyjnych (*"TED-Ed"*, *"BBC Learning English"*, *"Steve Jobs"*).
 
 ---
 
